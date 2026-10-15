@@ -11,6 +11,7 @@ import {
   calculatePointsPerSecond,
   accumulateDeltaPoints,
   calculateOfflineReward,
+  processVisibilityTransition,
   OfflineRewardResult,
 } from '../engine/idle';
 import { purchaseUpgrade } from '../engine/upgrade';
@@ -70,11 +71,13 @@ export interface GameStoreState {
   offlineReward: OfflineRewardResult | null;
   newAchievementUnlocked: string | null; // ID of newly unlocked achievement for notification toast
   idleAccumulator: number;
+  lastActiveTimestamp: number;
 
   // Actions
   clickFrog: (clickX?: number, clickY?: number) => void;
   removeFloatingText: (id: string) => void;
   tick: (deltaSeconds: number) => void;
+  handleVisibilityChange: (isVisible: boolean, nowTimestamp?: number) => void;
   buyUpgrade: (id: string, mode: 'x1' | 'x10' | 'max') => boolean;
   pullGacha: (count: 1 | 10) => GachaSessionResult | null;
   setMainFrog: (id: string) => void;
@@ -115,6 +118,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     offlineReward: null,
     newAchievementUnlocked: null,
     idleAccumulator: 0,
+    lastActiveTimestamp: initialLoaded.lastSavedTimestamp || Date.now(),
 
     clickFrog: (clickX, clickY) => {
       const state = get();
@@ -191,6 +195,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         currentCombo: newCombo,
         highestCombo,
         lastClickTimestamp: newTimestamp,
+        lastActiveTimestamp: Date.now(),
         floatingTexts: newFloatingTexts,
         unlockedAchievements: evalRes.achievements.filter((a) => a.isUnlocked).map((a) => a.id),
         newAchievementUnlocked: newlyUnlockedToast,
@@ -201,6 +206,75 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       set((state) => ({
         floatingTexts: state.floatingTexts.filter((t) => t.id !== id),
       }));
+    },
+
+    handleVisibilityChange: (isVisible: boolean, nowTimestamp?: number) => {
+      const now = nowTimestamp || Date.now();
+      const state = get();
+      if (!isVisible) {
+        set({ lastActiveTimestamp: now });
+        const saveData: GameSaveData = {
+          version: 1,
+          points: state.points,
+          totalPointsEarned: state.totalPointsEarned,
+          totalClicks: state.totalClicks,
+          upgrades: state.upgradeLevels,
+          ownedFrogs: state.ownedFrogs,
+          mainFrogId: state.mainFrogId,
+          pity: state.pity,
+          unlockedAchievements: state.unlockedAchievements,
+          settings: state.settings,
+          lastSavedTimestamp: now,
+        };
+        saveGameStateToStorage(saveData);
+        return;
+      }
+
+      const activeBuffs = calculateActiveFrogBuffs(state.mainFrogId, state.ownedFrogs);
+      const pps = calculatePointsPerSecond(state.upgradeLevels, activeBuffs);
+      const trans = processVisibilityTransition(
+        state.lastActiveTimestamp,
+        now,
+        pps,
+        state.idleAccumulator
+      );
+
+      if (trans.type === 'active_catchup') {
+        const newPoints = state.points + trans.pointsToAdd;
+        const newTotal = state.totalPointsEarned + trans.pointsToAdd;
+        set({
+          points: newPoints,
+          totalPointsEarned: newTotal,
+          idleAccumulator: trans.newAccumulator,
+          lastActiveTimestamp: now,
+        });
+      } else if (trans.type === 'offline_reward' && trans.offlineRewardResult) {
+        const newPoints = state.points + trans.pointsToAdd;
+        const newTotal = state.totalPointsEarned + trans.pointsToAdd;
+        set({
+          points: newPoints,
+          totalPointsEarned: newTotal,
+          offlineReward: trans.offlineRewardResult,
+          idleAccumulator: 0,
+          lastActiveTimestamp: now,
+        });
+        const saveData: GameSaveData = {
+          version: 1,
+          points: newPoints,
+          totalPointsEarned: newTotal,
+          totalClicks: state.totalClicks,
+          upgrades: state.upgradeLevels,
+          ownedFrogs: state.ownedFrogs,
+          mainFrogId: state.mainFrogId,
+          pity: state.pity,
+          unlockedAchievements: state.unlockedAchievements,
+          settings: state.settings,
+          lastSavedTimestamp: now,
+        };
+        saveGameStateToStorage(saveData);
+      } else {
+        set({ lastActiveTimestamp: now });
+      }
     },
 
     tick: (deltaSeconds) => {
@@ -216,7 +290,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
 
       if (pps <= 0) {
         if (updatedCombo !== state.currentCombo) {
-          set({ currentCombo: updatedCombo });
+          set({ currentCombo: updatedCombo, lastActiveTimestamp: Date.now() });
         }
         return;
       }
@@ -256,11 +330,12 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           totalPointsEarned: newTotalPointsEarned,
           currentCombo: updatedCombo,
           idleAccumulator: newAccumulator,
+          lastActiveTimestamp: Date.now(),
           unlockedAchievements: evalRes.achievements.filter((a) => a.isUnlocked).map((a) => a.id),
           newAchievementUnlocked: newlyUnlockedToast,
         });
       } else {
-        set({ idleAccumulator: newAccumulator, currentCombo: updatedCombo });
+        set({ idleAccumulator: newAccumulator, lastActiveTimestamp: Date.now() });
       }
     },
 

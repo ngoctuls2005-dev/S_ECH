@@ -100,7 +100,23 @@ export function validateSaveData(data: any): { valid: boolean; error?: string; c
 }
 
 /**
- * Lưu vào LocalStorage / Storage
+ * Tính toán checksum toàn vẹn dữ liệu để phát hiện chuỗi bị cắt cụt hoặc copy thiếu ký tự
+ * LƯU Ý KỸ THUẬT:
+ * - Đây là Checksum kiểm tra toàn vẹn (Data Integrity Verification / Corruption Detection)
+ * - Base64 là kỹ thuật tuần tự hóa / biểu diễn chuỗi văn bản (Serialization Encoding), KHÔNG PHẢI mã hóa bảo mật
+ * - Checksum không phải là chữ ký mật mã chống giả mạo (tamper-proofing cryptographic signature)
+ */
+export function calculateSaveChecksum(payload: string): string {
+  let hash = 5381;
+  for (let i = 0; i < payload.length; i++) {
+    hash = ((hash << 5) + hash) + payload.charCodeAt(i);
+    hash = hash & hash; // Ép kiểu 32-bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+/**
+ * Lưu vào LocalStorage / Storage (xử lý an toàn khi bộ nhớ đầy QuotaExceededError)
  */
 export function saveGameStateToStorage(state: GameSaveData, customStorage?: Storage): boolean {
   try {
@@ -113,8 +129,12 @@ export function saveGameStateToStorage(state: GameSaveData, customStorage?: Stor
     };
     storage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     return true;
-  } catch (e) {
-    console.error('Lỗi khi lưu game:', e);
+  } catch (e: any) {
+    if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+      console.warn('Cảnh báo: Bộ nhớ lưu trữ trình duyệt đã đầy (QuotaExceededError)! Không thể lưu game mới.');
+    } else {
+      console.error('Lỗi khi lưu game vào storage:', e);
+    }
     return false;
   }
 }
@@ -143,23 +163,41 @@ export function loadGameStateFromStorage(customStorage?: Storage): GameSaveData 
 }
 
 /**
- * Xuất file save ra chuỗi JSON Base64 kèm Header
+ * Xuất file save ra chuỗi văn bản Base64 kèm Checksum toàn vẹn
+ * Định dạng: SECH_SAVE_V1_<checksum>_<base64>
  */
 export function exportSaveToString(data: GameSaveData): string {
   const jsonStr = JSON.stringify(data);
   const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-  return `SECH_SAVE_${base64}`;
+  const checksum = calculateSaveChecksum(base64);
+  return `SECH_SAVE_V1_${checksum}_${base64}`;
 }
 
 /**
- * Nhập file save từ chuỗi Base64
+ * Nhập file save từ chuỗi văn bản Base64 (hỗ trợ cả định dạng v1 có checksum và định dạng cũ)
  */
 export function importSaveFromString(rawString: string): { success: boolean; data?: GameSaveData; error?: string } {
   try {
     const trimmed = rawString.trim();
     let jsonStr = trimmed;
 
-    if (trimmed.startsWith('SECH_SAVE_')) {
+    // Định dạng mới v1: SECH_SAVE_V1_<checksum>_<base64>
+    if (trimmed.startsWith('SECH_SAVE_V1_')) {
+      const parts = trimmed.substring('SECH_SAVE_V1_'.length).split('_');
+      if (parts.length < 2) {
+        return { success: false, error: 'Mã lưu game thiếu phần checksum hoặc payload' };
+      }
+      const checksum = parts[0];
+      const base64 = parts.slice(1).join('_');
+
+      const expectedChecksum = calculateSaveChecksum(base64);
+      if (checksum !== expectedChecksum) {
+        return { success: false, error: 'Dữ liệu file lưu bị sai lệch hoặc thiếu ký tự (Lỗi Checksum)' };
+      }
+
+      jsonStr = decodeURIComponent(escape(atob(base64)));
+    } else if (trimmed.startsWith('SECH_SAVE_')) {
+      // Định dạng cũ tương thích ngược: SECH_SAVE_<base64>
       const base64 = trimmed.substring('SECH_SAVE_'.length);
       jsonStr = decodeURIComponent(escape(atob(base64)));
     }
@@ -173,7 +211,7 @@ export function importSaveFromString(rawString: string): { success: boolean; dat
 
     return { success: true, data: validation.cleanData };
   } catch (e) {
-    return { success: false, error: 'Chuỗi dữ liệu bị hỏng hoặc sai định dạng' };
+    return { success: false, error: 'Chuỗi dữ liệu bị hỏng hoặc sai định dạng Base64/JSON' };
   }
 }
 

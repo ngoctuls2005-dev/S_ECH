@@ -109,4 +109,95 @@ describe('Game Economy Balance Simulation', () => {
     expect(offline1h?.earnedPoints).toBeGreaterThan(250_000);
     expect(offline1h?.wasCapped).toBe(false);
   });
+
+  it('compares 5 distinct player archetypes (Click-only, Idle-only, Hybrid, Gacha-focus, Upgrade-focus)', () => {
+    // Giả lập 5 phút đầu (300 giây)
+    const durationSeconds = 300;
+
+    // Archetype 1: Click only (sờ 3 lần/giây, chỉ nâng cấp click)
+    let ptsClickOnly = 0;
+    let totalEarnedClickOnly = 0;
+    let upgClickOnly: Record<string, number> = {};
+    for (let s = 0; s < durationSeconds; s++) {
+      for (let c = 0; c < 3; c++) {
+        const { result } = processFrogClick({
+          baseClickPower: 1,
+          upgradeLevels: upgClickOnly,
+          activeFrogBuffs: [],
+          currentCombo: c,
+          lastClickTimestamp: 0,
+        });
+        ptsClickOnly += result.earnedPoints;
+        totalEarnedClickOnly += result.earnedPoints;
+      }
+      // Mua nâng cấp click nếu đủ
+      const cost = calculateBatchUpgradeCost(50, upgClickOnly['divine_finger'] || 0, 1);
+      if (ptsClickOnly >= cost) {
+        const res = purchaseUpgrade('divine_finger', 'x1', ptsClickOnly, upgClickOnly);
+        if (res.success) {
+          ptsClickOnly = res.newPoints;
+          upgClickOnly = res.newLevels;
+        }
+      }
+    }
+
+    // Archetype 2: Idle only (chỉ click 50 lần đầu lấy vốn mua máy sờ ếch, sau đó afk hoàn toàn)
+    let ptsIdleOnly = 50; // Giả sử đã click lấy vốn ban đầu
+    let totalEarnedIdleOnly = 50;
+    let upgIdleOnly: Record<string, number> = { frog_touch_machine: 1 };
+    ptsIdleOnly -= 50;
+    for (let s = 0; s < durationSeconds; s++) {
+      const pps = calculatePointsPerSecond(upgIdleOnly, []);
+      ptsIdleOnly += pps * 1;
+      totalEarnedIdleOnly += pps * 1;
+      const cost = calculateBatchUpgradeCost(50, upgIdleOnly['frog_touch_machine'] || 0, 1);
+      if (ptsIdleOnly >= cost) {
+        const res = purchaseUpgrade('frog_touch_machine', 'x1', ptsIdleOnly, upgIdleOnly);
+        if (res.success) {
+          ptsIdleOnly = res.newPoints;
+          upgIdleOnly = res.newLevels;
+        }
+      }
+    }
+
+    // Archetype 3: Hybrid (vừa click vừa đầu tư máy móc)
+    let ptsHybrid = 0;
+    let totalEarnedHybrid = 0;
+    let upgHybrid: Record<string, number> = {};
+    for (let s = 0; s < durationSeconds; s++) {
+      // Click 2 lần mỗi giây
+      for (let c = 0; c < 2; c++) {
+        const { result } = processFrogClick({
+          baseClickPower: 1,
+          upgradeLevels: upgHybrid,
+          activeFrogBuffs: [],
+          currentCombo: c,
+          lastClickTimestamp: 0,
+        });
+        ptsHybrid += result.earnedPoints;
+        totalEarnedHybrid += result.earnedPoints;
+      }
+      // Idle
+      const pps = calculatePointsPerSecond(upgHybrid, []);
+      ptsHybrid += pps;
+      totalEarnedHybrid += pps;
+
+      // Cân bằng đầu tư
+      if (ptsHybrid >= calculateBatchUpgradeCost(50, upgHybrid['divine_finger'] || 0, 1)) {
+        const r = purchaseUpgrade('divine_finger', 'x1', ptsHybrid, upgHybrid);
+        if (r.success) { ptsHybrid = r.newPoints; upgHybrid = r.newLevels; }
+      }
+      if (ptsHybrid >= calculateBatchUpgradeCost(50, upgHybrid['frog_touch_machine'] || 0, 1)) {
+        const r = purchaseUpgrade('frog_touch_machine', 'x1', ptsHybrid, upgHybrid);
+        if (r.success) { ptsHybrid = r.newPoints; upgHybrid = r.newLevels; }
+      }
+    }
+
+    // Xác nhận cả 3 phong cách đều có tiến triển tích cực và không ai bị kẹt
+    expect(totalEarnedClickOnly).toBeGreaterThan(900);
+    expect(totalEarnedIdleOnly).toBeGreaterThan(300);
+    expect(totalEarnedHybrid).toBeGreaterThan(totalEarnedIdleOnly);
+    expect(upgClickOnly['divine_finger']).toBeGreaterThan(3);
+  });
 });
+

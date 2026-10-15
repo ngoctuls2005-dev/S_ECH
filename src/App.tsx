@@ -30,6 +30,7 @@ export default function App() {
   const activeTab = useGameStore((s) => s.activeTab);
   const setActiveTab = useGameStore((s) => s.setActiveTab);
   const tick = useGameStore((s) => s.tick);
+  const handleVisibilityChange = useGameStore((s) => s.handleVisibilityChange);
 
   const points = useGameStore((s) => s.points);
   const totalPointsEarned = useGameStore((s) => s.totalPointsEarned);
@@ -72,23 +73,24 @@ export default function App() {
     return () => cancelAnimationFrame(animId);
   }, [tick]);
 
-  // Offline reward calculation
+  // Handle visibility change and initial offline reward check on mount
   useEffect(() => {
-    const state = useGameStore.getState();
-    const buffs = calculateActiveFrogBuffs(state.mainFrogId, state.ownedFrogs);
-    const currPps = calculatePointsPerSecond(state.upgradeLevels, buffs);
+    // Kiểm tra offline reward ngay khi mount/reload trang
+    handleVisibilityChange(true);
 
-    if (currPps > 0 && state.lastClickTimestamp > 0) {
-      const reward = calculateOfflineReward(state.lastClickTimestamp, Date.now(), currPps);
-      if (reward && reward.earnedPoints > 0) {
-        useGameStore.setState({
-          offlineReward: reward,
-          points: state.points + reward.earnedPoints,
-          totalPointsEarned: state.totalPointsEarned + reward.earnedPoints,
-        });
+    const handleVisibility = () => {
+      const isVisible = document.visibilityState === 'visible';
+      if (isVisible) {
+        lastTimeRef.current = performance.now(); // Reset delta rAF để tránh spike sau khi vắng mặt
       }
-    }
-  }, []);
+      handleVisibilityChange(isVisible);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [handleVisibilityChange]);
 
   // Auto-save periodic & on tab close
   useEffect(() => {
@@ -113,9 +115,6 @@ export default function App() {
     const handleBeforeUnload = () => saveCurrent();
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') saveCurrent();
-    });
 
     return () => {
       clearInterval(interval);

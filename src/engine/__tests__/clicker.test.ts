@@ -5,6 +5,7 @@ import {
   calculateComboMultiplier,
   processFrogClick,
   formatNumber,
+  formatExactPoints,
   COMBO_TIMEOUT_MS,
 } from '../clicker';
 
@@ -182,4 +183,25 @@ describe('Game Economy & Core Clicker Engine', () => {
       expect(formatNumber(3_200_000_000_000)).toBe('3.2 T');
     });
   });
+
+  describe('formatExactPoints', () => {
+    it('returns exact localized integer format for numbers up to millions and billions', () => {
+      expect(formatExactPoints(0)).toBe('0');
+      expect(formatExactPoints(1500)).toBe((1500).toLocaleString('vi-VN'));
+      expect(formatExactPoints(1_500_000)).toBe((1500000).toLocaleString('vi-VN'));
+      expect(formatExactPoints(12_345_678)).toBe((12345678).toLocaleString('vi-VN'));
+    });
+
+    it('safely handles extreme numbers beyond MAX_SAFE_INTEGER using exponential format', () => {
+      const hugeNum = 1e18; // Beyond Number.MAX_SAFE_INTEGER (9e15)
+      const res = formatExactPoints(hugeNum);
+      expect(res).toContain('e+18');
+    });
+
+    it('handles negative or invalid numbers safely', () => {
+      expect(formatExactPoints(-10)).toBe('0');
+      expect(formatExactPoints(NaN)).toBe('0');
+    });
+  });
 });
+

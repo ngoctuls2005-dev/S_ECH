@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Volume2, VolumeX, Settings, Zap, Flame } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
-import { formatNumber } from '../engine/clicker';
+import { formatNumber, formatExactPoints } from '../engine/clicker';
 import { calculatePointsPerSecond } from '../engine/idle';
 import { calculateActiveFrogBuffs } from '../engine/frogs';
 
@@ -14,6 +14,8 @@ export const Header: React.FC = () => {
   const settings = useGameStore((s) => s.settings);
   const setSettings = useGameStore((s) => s.setSettings);
   const setActiveTab = useGameStore((s) => s.setActiveTab);
+
+  const [showExactPoints, setShowExactPoints] = useState(false);
 
   const activeBuffs = calculateActiveFrogBuffs(mainFrogId, ownedFrogs);
   const pps = calculatePointsPerSecond(upgradeLevels, activeBuffs);
@@ -44,10 +46,14 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Center: Score & DPS Indicator */}
-        <div className="flex flex-col items-center select-none">
+        <div 
+          onClick={() => setShowExactPoints(!showExactPoints)}
+          title={`Giá trị đầy đủ: ${formatExactPoints(points)} điểm (Nhấn để chuyển đổi hiển thị)`}
+          className="flex flex-col items-center select-none cursor-pointer group"
+        >
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading text-pond-300 tracking-tight drop-shadow-[0_0_12px_rgba(74,222,128,0.35)]">
-              {formatNumber(points)}
+            <span className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading text-pond-300 tracking-tight drop-shadow-[0_0_12px_rgba(74,222,128,0.35)] group-hover:text-emerald-300 transition-colors">
+              {showExactPoints ? formatExactPoints(points) : formatNumber(points)}
             </span>
             <span className="text-xs sm:text-sm font-semibold text-emerald-400/90 uppercase tracking-wider">
               Điểm
@@ -55,7 +61,10 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 text-xs text-slate-300">
-            <span className="flex items-center gap-1 font-medium text-emerald-400">
+            <span 
+              className="flex items-center gap-1 font-medium text-emerald-400"
+              title={`Thu nhập tự động: ${formatExactPoints(pps)} điểm/giây`}
+            >
               <Zap className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
               <span>+{formatNumber(pps)}/giây</span>
             </span>

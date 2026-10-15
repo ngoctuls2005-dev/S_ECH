@@ -18,16 +18,23 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const pullGacha = useGameStore((s) => s.pullGacha);
 
   const [isHatching, setIsHatching] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [skipAnim, setSkipAnim] = useState(false);
   const [showOdds, setShowOdds] = useState(false);
+  const [showTenPullConfirm, setShowTenPullConfirm] = useState(false);
+  const [confirmTenPullSetting, setConfirmTenPullSetting] = useState(true);
   const [results, setResults] = useState<GachaPullResult[] | null>(null);
 
-  const handlePull = (count: 1 | 10) => {
+  const executePull = (count: 1 | 10) => {
     const cost = count === 1 ? GACHA_COST_SINGLE : GACHA_COST_TEN;
-    if (points < cost) return;
+    if (points < cost || isProcessing || isHatching) return;
 
+    setIsProcessing(true);
     const session = pullGacha(count);
-    if (!session) return;
+    if (!session) {
+      setIsProcessing(false);
+      return;
+    }
 
     // Tìm độ hiếm cao nhất trong lần quay này để chọn hiệu ứng
     const highestRarity = session.pulls.reduce((highest, pull) => {
@@ -39,6 +46,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     if (skipAnim) {
       triggerResultView(session, highestRarity);
+      setIsProcessing(false);
     } else {
       setIsHatching(true);
       soundManager.playEggCrack();
@@ -49,8 +57,17 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       setTimeout(() => {
         setIsHatching(false);
+        setIsProcessing(false);
         triggerResultView(session, highestRarity);
       }, 1200);
+    }
+  };
+
+  const handlePullClick = (count: 1 | 10) => {
+    if (count === 10 && confirmTenPullSetting) {
+      setShowTenPullConfirm(true);
+    } else {
+      executePull(count);
     }
   };
 
@@ -155,11 +172,31 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           {results ? (
             /* Result Cards Screen */
             <div className="w-full">
-              <h3 className="text-center font-heading text-xl font-bold text-pond-300 mb-4">
+              <h3 className="text-center font-heading text-xl font-bold text-pond-300 mb-2">
                 🎉 Bạn Nhận Được:
               </h3>
+
+              {/* Summary Stats Banner for 10x Pull / Results */}
+              <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-pond-950/80 via-slate-900/90 to-purple-950/80 border border-pond-500/30 flex flex-wrap items-center justify-around gap-2 text-xs shadow-md">
+                <span className="text-white font-medium flex items-center gap-1.5">
+                  <span>Khám phá:</span>
+                  <strong className="text-emerald-400 font-bold">
+                    {results.filter((p) => p.isNew).length} loài mới
+                  </strong>
+                  <span>✨</span>
+                </span>
+                <span className="text-slate-600 hidden sm:inline">|</span>
+                <span className="text-white font-medium flex items-center gap-1.5">
+                  <span>Mảnh quy đổi trùng:</span>
+                  <strong className="text-yellow-300 font-bold">
+                    +{results.reduce((acc, p) => acc + p.fragmentsAdded, 0)} mảnh
+                  </strong>
+                  <span>🧩</span>
+                </span>
+              </div>
+
               <div
-                className={`grid gap-3 max-h-[50vh] overflow-y-auto p-2 ${
+                className={`grid gap-3 max-h-[48vh] overflow-y-auto p-2 ${
                   results.length === 1
                     ? 'grid-cols-1 max-w-xs mx-auto'
                     : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5'
@@ -170,7 +207,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   return (
                     <div
                       key={idx}
-                      className={`p-3 rounded-2xl border flex flex-col items-center text-center relative overflow-hidden backdrop-blur-md shadow-lg ${
+                      className={`p-3 rounded-2xl border flex flex-col items-center text-center relative overflow-hidden backdrop-blur-md shadow-lg transition-transform hover:scale-105 ${
                         pull.species.rarity === 'mythic'
                           ? 'border-rose-400 bg-rose-950/40 shadow-rose-500/30'
                           : pull.species.rarity === 'legendary'
@@ -212,10 +249,10 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 })}
               </div>
 
-              <div className="mt-6 flex justify-center">
+              <div className="mt-5 flex justify-center">
                 <button
                   onClick={handleReset}
-                  className="px-6 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold flex items-center gap-2 transition-all active:scale-95"
+                  className="px-6 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md"
                 >
                   <RotateCcw className="w-4 h-4" />
                   Tiếp Tục Quay
@@ -234,7 +271,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   className={`text-8xl sm:text-9xl cursor-pointer select-none transition-transform duration-200 ${
                     isHatching ? 'animate-egg-wobble scale-110' : 'hover:scale-105'
                   }`}
-                  onClick={() => handlePull(1)}
+                  onClick={() => handlePullClick(1)}
                 >
                   {isHatching ? '✨🥚✨' : '🥚'}
                 </div>
@@ -249,23 +286,35 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         {/* Footer Actions */}
         <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={skipAnim}
-              onChange={(e) => setSkipAnim(e.target.checked)}
-              className="w-4 h-4 accent-pond-500 rounded cursor-pointer"
-            />
-            <span>Bỏ qua hoạt ảnh nở trứng</span>
-          </label>
+          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={skipAnim}
+                onChange={(e) => setSkipAnim(e.target.checked)}
+                className="w-4 h-4 accent-pond-500 rounded cursor-pointer"
+              />
+              <span>Bỏ qua hoạt ảnh</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={confirmTenPullSetting}
+                onChange={(e) => setConfirmTenPullSetting(e.target.checked)}
+                className="w-4 h-4 accent-purple-500 rounded cursor-pointer"
+              />
+              <span>Xác nhận quay 10 lượt</span>
+            </label>
+          </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {/* Quay 1 Lượt */}
             <button
-              disabled={points < GACHA_COST_SINGLE || isHatching}
-              onClick={() => handlePull(1)}
+              disabled={points < GACHA_COST_SINGLE || isHatching || isProcessing}
+              onClick={() => handlePullClick(1)}
               className={`flex-1 sm:flex-initial px-5 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
-                points >= GACHA_COST_SINGLE && !isHatching
+                points >= GACHA_COST_SINGLE && !isHatching && !isProcessing
                   ? 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-md'
                   : 'bg-slate-800/50 text-slate-500 border border-slate-800 cursor-not-allowed'
               }`}
@@ -276,10 +325,10 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             {/* Quay 10 Lượt */}
             <button
-              disabled={points < GACHA_COST_TEN || isHatching}
-              onClick={() => handlePull(10)}
+              disabled={points < GACHA_COST_TEN || isHatching || isProcessing}
+              onClick={() => handlePullClick(10)}
               className={`flex-1 sm:flex-initial px-6 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
-                points >= GACHA_COST_TEN && !isHatching
+                points >= GACHA_COST_TEN && !isHatching && !isProcessing
                   ? 'bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white shadow-lg shadow-purple-500/25'
                   : 'bg-slate-800/50 text-slate-500 border border-slate-800 cursor-not-allowed'
               }`}
@@ -291,6 +340,70 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal for 10x Pull (D1 Chống bấm nhầm) */}
+      {showTenPullConfirm && (
+        <div 
+          onClick={() => setShowTenPullConfirm(false)}
+          className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-purple-500/50 p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl animate-scale-up space-y-4"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-purple-600/20 border border-purple-400/30 flex items-center justify-center text-3xl mx-auto shadow-inner">
+              🥚✨
+            </div>
+            <div>
+              <h3 className="text-lg font-bold font-heading text-white">Xác Nhận Quay 10 Lượt</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Bạn có chắc chắn muốn sử dụng 5.000 điểm để ấp 10 trứng liên tiếp?
+              </p>
+            </div>
+
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-400">
+                <span>Số lượt quay:</span>
+                <span className="font-bold text-white">10 Lượt</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Chi phí:</span>
+                <span className="font-bold text-yellow-300">-{formatNumber(GACHA_COST_TEN)} điểm</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Số điểm hiện tại:</span>
+                <span className="font-bold text-emerald-400">{points.toLocaleString('vi-VN')} điểm</span>
+              </div>
+              <div className="flex justify-between text-slate-400 border-t border-slate-800/80 pt-2">
+                <span>Điểm sau khi quay:</span>
+                <span className="font-bold text-cyan-300">
+                  {Math.max(0, points - GACHA_COST_TEN).toLocaleString('vi-VN')} điểm
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                disabled={isProcessing}
+                onClick={() => setShowTenPullConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition-all active:scale-95"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                disabled={isProcessing}
+                onClick={() => {
+                  setShowTenPullConfirm(false);
+                  executePull(10);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white font-bold text-xs shadow-lg shadow-purple-500/30 transition-all active:scale-95"
+              >
+                Xác Nhận Quay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

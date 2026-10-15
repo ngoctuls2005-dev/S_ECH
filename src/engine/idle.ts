@@ -113,3 +113,80 @@ export function calculateOfflineReward(
     pointsPerSecond: pps,
   };
 }
+
+export interface VisibilityTransitionResult {
+  type: 'active_catchup' | 'offline_reward' | 'none';
+  elapsedSeconds: number;
+  pointsToAdd: number;
+  newAccumulator: number;
+  offlineRewardResult: OfflineRewardResult | null;
+}
+
+/**
+ * Xử lý sự kiện chuyển trạng thái tab (Page Visibility API) hoặc phục hồi sau ngắt quãng
+ * - Vắng mặt < 30s: Tính bù 100% thu nhập hoạt động bình thường, không mở popup
+ * - Vắng mặt >= 30s: Tính 50% thu nhập offline (tối đa 8h), mở popup nhận thưởng
+ * - Timestamp không hợp lệ hoặc lùi thời gian: Bỏ qua an toàn, không cộng điểm âm
+ */
+export function processVisibilityTransition(
+  lastActiveTimestamp: number,
+  nowTimestamp: number,
+  pps: number,
+  currentAccumulator: number = 0,
+  config: IdleConfig = DEFAULT_IDLE_CONFIG
+): VisibilityTransitionResult {
+  if (pps <= 0 || !lastActiveTimestamp || nowTimestamp <= lastActiveTimestamp) {
+    return {
+      type: 'none',
+      elapsedSeconds: 0,
+      pointsToAdd: 0,
+      newAccumulator: currentAccumulator,
+      offlineRewardResult: null,
+    };
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor((nowTimestamp - lastActiveTimestamp) / 1000));
+  if (elapsedSeconds <= 0) {
+    return {
+      type: 'none',
+      elapsedSeconds: 0,
+      pointsToAdd: 0,
+      newAccumulator: currentAccumulator,
+      offlineRewardResult: null,
+    };
+  }
+
+  // Trường hợp tab ẩn ngắn (< 30s): Bù 100% thu nhập active time, không bật modal
+  if (elapsedSeconds < config.minOfflineThresholdSeconds) {
+    const total = currentAccumulator + pps * elapsedSeconds;
+    const pointsToAdd = Math.floor(total);
+    const newAccumulator = total - pointsToAdd;
+
+    return {
+      type: 'active_catchup',
+      elapsedSeconds,
+      pointsToAdd,
+      newAccumulator,
+      offlineRewardResult: null,
+    };
+  }
+
+  // Trường hợp tab ẩn dài (>= 30s): Kích hoạt phần thưởng offline 50%
+  const offlineRewardResult = calculateOfflineReward(
+    lastActiveTimestamp,
+    nowTimestamp,
+    pps,
+    config
+  );
+
+  const pointsToAdd = offlineRewardResult ? offlineRewardResult.earnedPoints : 0;
+
+  return {
+    type: 'offline_reward',
+    elapsedSeconds,
+    pointsToAdd,
+    newAccumulator: 0,
+    offlineRewardResult,
+  };
+}
+

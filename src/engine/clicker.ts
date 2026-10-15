@@ -185,3 +185,15 @@ export function formatNumber(num: number): string {
 
   return Math.floor(num).toLocaleString('vi-VN');
 }
+
+/**
+ * Định dạng điểm số nguyên bản đầy đủ (an toàn khi số vượt quá MAX_SAFE_INTEGER)
+ */
+export function formatExactPoints(num: number): string {
+  if (num === null || num === undefined || isNaN(num) || num < 0) return '0';
+  if (num > Number.MAX_SAFE_INTEGER) {
+    return num.toExponential(4);
+  }
+  return Math.floor(num).toLocaleString('vi-VN');
+}
+

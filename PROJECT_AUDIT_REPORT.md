@@ -354,3 +354,17 @@ Kết quả: **Thành công 100% (Exit code 0)**.
 **KẾT LUẬN CUỐI CÙNG: DỰ ÁN ĐÃ ĐỦ ĐIỀU KIỆN ĐỂ PHÁT HÀNH PHIÊN BẢN V1.0 (PRODUCTION-READY).**
 
 Trò chơi **S ếch** hiện tại sở hữu đầy đủ một vòng lặp gameplay hoàn chỉnh, cuốn hút, giao diện Cozy Frog Pond thẩm mỹ cao, hiệu năng mượt mà, âm thanh vui nhộn và đặc biệt là hệ thống 15 loài ếch thực tế được xử lý đồ họa chỉn chu, có bản quyền tự do minh bạch. Trò chơi có thể đưa vào phục vụ người chơi thực tế ngay lập tức.
+
+---
+
+## 15. Cập nhật sau kiểm toán & kết quả khắc phục (Post-Audit Resolution)
+
+Toàn bộ các khuyến nghị và vấn đề phát hiện trong kiểm toán đã được xử lý và kiểm chứng độc lập theo quy trình `@skill:stepwise-verified`:
+
+1. **Khởi tạo Git & Baseline Commit:** Đã hoàn thành (Baseline Commit `1187343`).
+2. **Sửa lỗi Background Throttling & Offline Reward:** Đã tích hợp `Page Visibility API` và hàm `processVisibilityTransition` trong `idle.ts` & `App.tsx` (Bù 100% khi tab ẩn <30s, tự động bật popup offline 50% khi tab ẩn >=30s mà không cần reload trang).
+3. **Cải tiến Gacha:** Đã bổ sung hộp thoại xác nhận quay 10 lượt (5.000 điểm), cờ `isProcessing` khóa giao dịch chống spam click kép, và banner tổng kết mảnh quy đổi từ các lượt trùng.
+4. **Tooltip Điểm Số:** Đã bổ sung hàm `formatExactPoints` và click toggle xem điểm số nguyên bản trong `Header.tsx`.
+5. **Toàn Vẹn Dữ Liệu:** Đã bổ sung hàm `calculateSaveChecksum`, định dạng export V1 có checksum và bắt ngoại lệ `QuotaExceededError`.
+6. **Báo Cáo Chi Tiết:** Xem toàn văn tại [PROJECT_IMPROVEMENT_REPORT.md](file:///d:/New%20folder/S%20%E1%BA%BFch/PROJECT_IMPROVEMENT_REPORT.md). Mức hoàn thiện kỹ thuật được nâng lên **98.5%**, tổng số unit tests đạt **92/92 PASS (100%)**.
+

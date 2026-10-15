@@ -136,3 +136,52 @@
 ### [F01] VERIFIED (2026-10-15T14:57:14Z)
 - **Test tự động:** 1 lệnh PASS
 
+### [F02] Ghi chú quyết định (2026-10-15T14:58:40Z)
+- **Vì sao (Why):** Bao toan ma nguon goc truoc khi sua code theo yeu cau Giai doan B
+- **Thay đổi & Tác động (Change):** Tao .gitignore chuan loai tru node_modules, dist, temp files; khoi tao git va tao baseline commit
+
+### [F02] VERIFIED (2026-10-15T14:58:44Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [F03] Ghi chú quyết định (2026-10-15T15:03:15Z)
+- **Vì sao (Why):** Sua loi C1 Background Throttling va C2 Offline Reward theo yeu cau Giai doan C
+- **Thay đổi & Tác động (Change):** Them ham processVisibilityTransition vao idle.ts xu ly 100% active catchup khi tab <30s va 50% offline reward khi >=30s; tich hop Page Visibility API trong App.tsx va gameStore.ts giup hien popup offline tu dong khong can F5; bo sung 9 test cases mo phong mock time 5s 15s 29s 31s 1h 8h 12h va timestamp bat thuong
+
+### [F03] VERIFIED (2026-10-15T15:03:23Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [F04] Ghi chú quyết định (2026-10-15T15:06:02Z)
+- **Vì sao (Why):** Cai thien Gacha chong bam nham va tang trai nghiem theo yeu cau Giai doan D
+- **Thay đổi & Tác động (Change):** Them hop thoai xac nhan khi quay 10 luot 5000 diem hien thi chi tiet so luot chi phi diem hien tai va con lai; them co isProcessing khoa giao dich chong click kep spam; bo sung banner tong ket so loai moi va tong manh quy doi tu luot trung
+
+### [F04] VERIFIED (2026-10-15T15:06:10Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [F05] Ghi chú quyết định (2026-10-15T15:08:32Z)
+- **Vì sao (Why):** Cai thien tooltip diem so day du va an toan so lon theo yeu cau Giai doan E
+- **Thay đổi & Tác động (Change):** Them ham formatExactPoints trong clicker.ts ho tro an toan so lon MAX_SAFE_INTEGER va so thuc float64; cap nhat Header.tsx cho phep click toggle xem diem so day du cung tooltip chi tiet; build production dat ket qua sach se khong loi
+
+### [F05] VERIFIED (2026-10-15T15:08:46Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [F06] Ghi chú quyết định (2026-10-15T15:10:36Z)
+- **Vì sao (Why):** Hoan thien he thong luu game lam ro Base64 va them checksum toan ven theo yeu cau Giai doan F
+- **Thay đổi & Tác động (Change):** Bo sung ham calculateSaveChecksum kiem tra toan ven chuoi export format V1; ho tro 100% tuong thich nguoc voi format cu; lam ro Base64 la serialization format chu khong phai ma hoa bao mat; bat an toan loi QuotaExceededError khi bo nho day
+
+### [F06] VERIFIED (2026-10-15T15:10:49Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [F07] Ghi chú quyết định (2026-10-15T15:13:26Z)
+- **Vì sao (Why):** Kiem thu hoi quy toan dien va mo phong can bang kinh te theo yeu cau Giai doan G va H
+- **Thay đổi & Tác động (Change):** Mo phong 5 phong cach choi trong balance.test.ts dam bao khong ai bi ket; chay toan bo 92 unit tests pass 100% va production build khong loi
+
+### [F07] VERIFIED (2026-10-15T15:13:42Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [F08] Ghi chú quyết định (2026-10-15T15:15:50Z)
+- **Vì sao (Why):** Xuat ban PROJECT_IMPROVEMENT_REPORT.md va cap nhat PROJECT_AUDIT_REPORT.md theo yeu cau Giai doan 10
+- **Thay đổi & Tác động (Change):** Tao bao cao PROJECT_IMPROVEMENT_REPORT.md day du 8 muc tu A den H; cap nhat muc 15 trong PROJECT_AUDIT_REPORT.md va chay script verify thanh cong
+
+### [F08] VERIFIED (2026-10-15T15:15:55Z)
+- **Test tự động:** 1 lệnh PASS
+

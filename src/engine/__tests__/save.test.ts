@@ -91,8 +91,8 @@ describe('Save System & Import/Export', () => {
     });
   });
 
-  describe('Export and Import', () => {
-    it('exports save to encoded string and imports it back identically', () => {
+  describe('Export and Import & Checksum Integrity', () => {
+    it('exports save to encoded string with V1 checksum format and imports it back identically', () => {
       const stateToExport: GameSaveData = {
         ...DEFAULT_INITIAL_SAVE,
         points: 99999,
@@ -101,13 +101,41 @@ describe('Save System & Import/Export', () => {
       };
 
       const exportedString = exportSaveToString(stateToExport);
-      expect(exportedString.startsWith('SECH_SAVE_')).toBe(true);
+      expect(exportedString.startsWith('SECH_SAVE_V1_')).toBe(true);
 
       const importResult = importSaveFromString(exportedString);
       expect(importResult.success).toBe(true);
       expect(importResult.data?.points).toBe(99999);
       expect(importResult.data?.totalClicks).toBe(1234);
       expect(importResult.data?.upgrades['divine_finger']).toBe(5);
+    });
+
+    it('detects and rejects data corruption when checksum does not match', () => {
+      const stateToExport: GameSaveData = {
+        ...DEFAULT_INITIAL_SAVE,
+        points: 12345,
+      };
+      const exportedString = exportSaveToString(stateToExport);
+      
+      // Cố tình sửa payload hoặc đổi 1 ký tự
+      const corrupted = exportedString.slice(0, -3) + 'XYZ';
+      const res = importSaveFromString(corrupted);
+      expect(res.success).toBe(false);
+      expect(res.error).toBeDefined();
+    });
+
+    it('maintains 100% backwards compatibility with legacy SECH_SAVE_<base64> format', () => {
+      const stateToExport: GameSaveData = {
+        ...DEFAULT_INITIAL_SAVE,
+        points: 54321,
+      };
+      const jsonStr = JSON.stringify(stateToExport);
+      const legacyBase64 = btoa(unescape(encodeURIComponent(jsonStr)));
+      const legacyString = `SECH_SAVE_${legacyBase64}`;
+
+      const res = importSaveFromString(legacyString);
+      expect(res.success).toBe(true);
+      expect(res.data?.points).toBe(54321);
     });
 
     it('gracefully handles damaged or invalid import strings without crashing', () => {
@@ -117,4 +145,25 @@ describe('Save System & Import/Export', () => {
       expect(res.error).toBeDefined();
     });
   });
+
+  describe('Storage Quota handling', () => {
+    it('safely handles QuotaExceededError without crashing', () => {
+      const quotaStorage = {
+        setItem: () => {
+          const err = new Error('Quota exceeded');
+          err.name = 'QuotaExceededError';
+          throw err;
+        },
+        getItem: () => null,
+        removeItem: () => {},
+        clear: () => {},
+        length: 0,
+        key: () => null,
+      } as unknown as Storage;
+
+      const res = saveGameStateToStorage(DEFAULT_INITIAL_SAVE, quotaStorage);
+      expect(res).toBe(false);
+    });
+  });
 });
+
