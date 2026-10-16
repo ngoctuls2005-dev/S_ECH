@@ -46,10 +46,12 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Center: Score & DPS Indicator */}
-        <div 
+        <button
+          type="button"
           onClick={() => setShowExactPoints(!showExactPoints)}
+          aria-label={`Điểm hiện tại ${formatExactPoints(points)}. Nhấn để ${showExactPoints ? 'hiển thị rút gọn' : 'xem đầy đủ'}`}
           title={`Giá trị đầy đủ: ${formatExactPoints(points)} điểm (Nhấn để chuyển đổi hiển thị)`}
-          className="flex flex-col items-center select-none cursor-pointer group"
+          className="flex flex-col items-center select-none cursor-pointer group rounded-xl px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
         >
           <div className="flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading text-pond-300 tracking-tight drop-shadow-[0_0_12px_rgba(74,222,128,0.35)] group-hover:text-emerald-300 transition-colors">
@@ -76,7 +78,7 @@ export const Header: React.FC = () => {
               </span>
             )}
           </div>
-        </div>
+        </button>
 
         {/* Right: Quick Controls */}
         <div className="flex items-center gap-2">

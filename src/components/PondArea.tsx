@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGameStore, FloatingTextItem } from '../store/gameStore';
-import { getFrogSpeciesById, RARITY_CONFIG } from '../engine/frogs';
+import { calculateActiveFrogBuffs, getFrogSpeciesById, RARITY_CONFIG } from '../engine/frogs';
 import { formatNumber, calculateClickPower, calculateCritStats } from '../engine/clicker';
-import { calculateActiveFrogBuffs } from '../engine/frogs';
 import { Sparkles, Flame, Eye } from 'lucide-react';
 
 interface ClickRipple {
@@ -34,23 +33,12 @@ export const PondArea: React.FC = () => {
   const { critChance, critMultiplier } = calculateCritStats(upgradeLevels, activeBuffs);
 
   // Xử lý click sờ ếch
-  const handleFrogTouch = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-
-    let clientX: number;
-    let clientY: number;
-
-    if ('touches' in e && e.touches.length > 0) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else if ('clientX' in e) {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    } else {
-      const rect = pondRef.current?.getBoundingClientRect();
-      clientX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
-      clientY = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
-    }
+  const handleFrogTouch = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const frogRect = e.currentTarget.getBoundingClientRect();
+    // Keyboard activation reports (0, 0); center its reward and ripple on the frog.
+    const hasPointerPosition = e.clientX !== 0 || e.clientY !== 0;
+    const clientX = hasPointerPosition ? e.clientX : frogRect.left + frogRect.width / 2;
+    const clientY = hasPointerPosition ? e.clientY : frogRect.top + frogRect.height / 2;
 
     // Hiệu ứng squash
     setIsSquished(true);
@@ -74,7 +62,7 @@ export const PondArea: React.FC = () => {
   return (
     <div
       ref={pondRef}
-      className="relative w-full flex-1 flex flex-col items-center justify-between p-4 overflow-hidden select-none min-h-[440px]"
+      className="relative w-full flex-1 flex flex-col items-center justify-between gap-3 p-3 sm:p-5 overflow-hidden select-none min-h-[440px]"
     >
       {/* Background Pond Elements (Lá sen trôi & bóng nước) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -112,19 +100,19 @@ export const PondArea: React.FC = () => {
         <FloatingTextItemView
           key={ft.id}
           item={ft}
-          onComplete={() => removeFloatingText(ft.id)}
+          removeFloatingText={removeFloatingText}
         />
       ))}
 
       {/* Top Tag: Frog Identity Card */}
-      <div className="z-10 bg-slate-900/80 backdrop-blur-md border border-pond-600/40 px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-3 transition-all hover:border-pond-400">
+      <div className="z-10 max-w-full bg-slate-900/80 backdrop-blur-md border border-pond-600/40 px-3 sm:px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 sm:gap-3 transition-all hover:border-pond-400">
         <span
           className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${rarityInfo.badgeBg}`}
         >
           {rarityInfo.nameVi}
         </span>
         <div>
-          <h2 className="text-base sm:text-lg font-bold font-heading text-white flex items-center gap-1.5">
+          <h2 className="text-sm sm:text-lg font-bold font-heading text-white flex flex-wrap items-center gap-x-1.5">
             {species.nameVi}
             <span className="text-xs font-normal text-emerald-400">
               (Cấp {ownedInfo.level})
@@ -145,18 +133,18 @@ export const PondArea: React.FC = () => {
       </div>
 
       {/* CENTER: The Big Frog on Giant Lilypad */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-4 group">
+      <div className="relative z-10 flex-1 w-full flex flex-col items-center justify-center min-h-[310px] sm:min-h-[390px] my-1 sm:my-3 group">
         {/* Lá Sen Khổng Lồ (Giant Lilypad) */}
-        <div className="relative flex items-center justify-center">
-          <div className="w-[280px] h-[160px] sm:w-[380px] h-[200px] md:w-[440px] md:h-[230px] rounded-[50%] bg-gradient-to-b from-pond-700 via-pond-800 to-pond-950 border-4 border-pond-500/40 shadow-2xl shadow-pond-950/80 flex items-center justify-center transition-transform group-hover:scale-[1.02]">
-            {/* Gân lá sen */}
-            <div className="absolute inset-0 rounded-[50%] opacity-25 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-pond-300 via-transparent to-transparent pointer-events-none" />
-            <div className="w-[90%] h-[90%] rounded-[50%] border border-pond-400/20" />
+        <div className="relative flex h-[280px] w-full max-w-[620px] items-center justify-center sm:h-[360px]">
+          <div className="absolute bottom-[14%] h-[38%] w-[78%] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_#1d966c_0%,_#126148_58%,_#0a3e39_100%)] border border-emerald-300/40 shadow-[0_20px_45px_rgba(2,20,24,0.7),inset_0_3px_12px_rgba(167,243,208,0.22)] transition-transform duration-500 group-hover:scale-[1.03]">
+            <div className="absolute inset-[5%] rounded-[50%] border border-emerald-100/20" />
+            <div className="absolute inset-x-[13%] top-[16%] h-[28%] rounded-[50%] bg-gradient-to-b from-emerald-100/15 to-transparent blur-sm" />
+            <div className="absolute left-1/2 top-1/2 h-[75%] w-[56%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-emerald-200/10" />
           </div>
 
           {/* Hào quang độ hiếm */}
           <div
-            className={`absolute w-[260px] h-[260px] sm:w-[340px] sm:h-[340px] rounded-full blur-2xl pointer-events-none opacity-40 transition-opacity ${
+            className={`absolute h-[260px] w-[260px] sm:h-[360px] sm:w-[360px] rounded-full blur-3xl pointer-events-none opacity-45 transition-opacity ${
               species.rarity === 'mythic'
                 ? 'bg-rose-500 animate-pulse'
                 : species.rarity === 'legendary'
@@ -170,13 +158,11 @@ export const PondArea: React.FC = () => {
           />
 
           {/* Con Ếch Thực Tế (Real Frog Transparent WebP) */}
-          <div
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             onClick={handleFrogTouch}
-            onTouchStart={handleFrogTouch}
             aria-label={`Sờ ếch ${species.nameVi}`}
-            className={`absolute cursor-pointer transition-transform duration-75 ease-out select-none focus:outline-none ${
+            className={`absolute z-10 flex cursor-pointer items-center justify-center rounded-full transition-transform duration-100 ease-out select-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300/70 ${
               isSquished ? 'scale-x-[1.18] scale-y-[0.82] translate-y-3' : 'hover:scale-[1.04]'
             }`}
           >
@@ -184,9 +170,9 @@ export const PondArea: React.FC = () => {
               src={species.image}
               alt={species.nameVi}
               draggable={false}
-              className="w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.6)] pointer-events-none"
+              className="h-[min(72vw,21rem)] w-[min(72vw,21rem)] sm:h-[min(58vw,27rem)] sm:w-[min(58vw,27rem)] object-contain drop-shadow-[0_18px_24px_rgba(0,0,0,0.68)] pointer-events-none"
             />
-          </div>
+          </button>
         </div>
 
         {/* Chú thích nhắc nhở chạm vào ếch */}
@@ -199,21 +185,21 @@ export const PondArea: React.FC = () => {
       {/* BOTTOM: Real-time Stats Quick Panel */}
       <div className="z-10 w-full max-w-xl bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl grid grid-cols-3 gap-2 text-center">
         <div className="bg-slate-800/50 p-2 rounded-xl border border-slate-700/50">
-          <p className="text-[11px] text-slate-400">Mỗi Lần Sờ</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400">Mỗi Lần Sờ</p>
           <p className="text-base sm:text-lg font-bold font-heading text-emerald-400">
             +{formatNumber(clickPower)}
           </p>
         </div>
 
         <div className="bg-slate-800/50 p-2 rounded-xl border border-slate-700/50">
-          <p className="text-[11px] text-slate-400">Tỉ Lệ Chí Mạng</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400">Tỉ Lệ Chí Mạng</p>
           <p className="text-base sm:text-lg font-bold font-heading text-amber-400">
             {(critChance * 100).toFixed(1)}% <span className="text-[11px] font-normal text-slate-400">(x{critMultiplier.toFixed(1)})</span>
           </p>
         </div>
 
         <div className="bg-slate-800/50 p-2 rounded-xl border border-slate-700/50">
-          <p className="text-[11px] text-slate-400">Chuỗi Combo</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400">Chuỗi Combo</p>
           <p className="text-base sm:text-lg font-bold font-heading text-orange-400 flex items-center justify-center gap-1">
             <Flame className="w-4 h-4 fill-orange-400" />
             {currentCombo > 0 ? `${currentCombo}x` : '0'}
@@ -225,14 +211,14 @@ export const PondArea: React.FC = () => {
 };
 
 // Component Floating Text hiển thị số điểm bay lên khi click
-const FloatingTextItemView: React.FC<{ item: FloatingTextItem; onComplete: () => void }> = ({
-  item,
-  onComplete,
-}) => {
+const FloatingTextItemView: React.FC<{
+  item: FloatingTextItem;
+  removeFloatingText: (id: string) => void;
+}> = ({ item, removeFloatingText }) => {
   useEffect(() => {
-    const timer = setTimeout(onComplete, 800);
+    const timer = setTimeout(() => removeFloatingText(item.id), 800);
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [item.id, removeFloatingText]);
 
   return (
     <div

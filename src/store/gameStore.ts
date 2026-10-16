@@ -98,6 +98,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
   // Đồng bộ âm thanh từ cài đặt đã lưu
   soundManager.setSoundEnabled(initialLoaded.settings.soundEnabled);
   soundManager.setVolume(initialLoaded.settings.volume);
+  soundManager.setMusicPreference(initialLoaded.settings.musicEnabled);
 
   return {
     points: initialLoaded.points,
@@ -133,15 +134,14 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       });
 
       // Phát âm thanh
+      soundManager.unlockAudio();
       if (result.isCritical) {
         soundManager.playClick(true);
       } else {
         soundManager.playClick(false);
-        // Có tỉ lệ 10% phát thêm tiếng ộp ộp khi sờ
-        if (Math.random() < 0.12) {
-          soundManager.playRibbit();
-        }
       }
+      // Tiếng ộp được giới hạn nhịp để thao tác liên tục không làm âm thanh chồng lấn.
+      soundManager.playRibbit(0.9 + Math.random() * 0.2);
 
       // Tạo floating text
       const newFloatingTexts = [...state.floatingTexts];
@@ -457,6 +457,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         if (partial.volume !== undefined) {
           soundManager.setVolume(partial.volume);
         }
+        if (partial.musicEnabled !== undefined) {
+          soundManager.setMusicEnabled(partial.musicEnabled);
+        }
         return { settings: updated };
       });
     },
@@ -491,6 +494,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
 
       const d = res.data;
       saveGameStateToStorage(d);
+      soundManager.setSoundEnabled(d.settings.soundEnabled);
+      soundManager.setVolume(d.settings.volume);
+      soundManager.setMusicEnabled(d.settings.musicEnabled);
       set({
         points: d.points,
         totalPointsEarned: d.totalPointsEarned,
@@ -508,6 +514,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
 
     resetGame: () => {
       clearSavedGame();
+      soundManager.setSoundEnabled(DEFAULT_INITIAL_SAVE.settings.soundEnabled);
+      soundManager.setVolume(DEFAULT_INITIAL_SAVE.settings.volume);
+      soundManager.setMusicEnabled(DEFAULT_INITIAL_SAVE.settings.musicEnabled);
       set({
         points: DEFAULT_INITIAL_SAVE.points,
         totalPointsEarned: DEFAULT_INITIAL_SAVE.totalPointsEarned,

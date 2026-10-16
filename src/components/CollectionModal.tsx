@@ -34,7 +34,7 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-slate-900 border border-pond-600/30 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up"
+        className="bg-slate-900 border border-pond-600/30 rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up"
       >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
@@ -97,7 +97,7 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
         </div>
 
         {/* Frog Cards Grid */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 grid auto-rows-max grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredFrogs.map((frog) => {
             const owned = ownedFrogs[frog.id];
             const isMain = mainFrogId === frog.id;
@@ -109,7 +109,7 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
             return (
               <div
                 key={frog.id}
-                className={`p-4 rounded-3xl border flex flex-col justify-between transition-all relative overflow-hidden backdrop-blur-md ${
+                className={`min-h-[400px] p-3.5 sm:p-4 rounded-3xl border flex flex-col justify-between transition-all duration-200 relative overflow-hidden backdrop-blur-md hover:-translate-y-0.5 ${
                   owned
                     ? `${rarity.borderGlow} bg-gradient-to-b ${rarity.bgGradient} shadow-md`
                     : 'border-slate-800 bg-slate-950/40 opacity-70'
@@ -129,24 +129,26 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 </div>
 
                 {/* Frog Photo */}
-                <div className="flex flex-col items-center my-2 relative">
+                <div className={`relative my-2 flex aspect-[4/3] max-h-[190px] items-center justify-center overflow-hidden rounded-2xl border ${owned ? 'border-white/10 bg-slate-950/35' : 'border-slate-800 bg-slate-950/70'}`}>
+                  <div className={`absolute inset-0 opacity-30 ${rarity.bgGradient} bg-gradient-to-br`} />
                   <img
                     src={frog.image}
                     alt={frog.nameVi}
-                    className={`w-28 h-28 sm:w-32 sm:h-32 object-contain transition-all duration-300 drop-shadow-lg ${
-                      owned ? 'hover:scale-105' : 'brightness-[0.2] contrast-150 grayscale'
+                    className={`relative z-10 h-full w-full p-2 object-contain transition-all duration-300 drop-shadow-[0_10px_18px_rgba(0,0,0,0.55)] ${
+                      owned ? 'hover:scale-110' : 'brightness-[0.18] contrast-125 grayscale'
                     }`}
                   />
                   {!owned && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl">🔒</span>
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-1 bg-slate-950/10">
+                      <span className="text-2xl drop-shadow-lg">🔒</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300/80">Chưa khám phá</span>
                     </div>
                   )}
                 </div>
 
                 {/* Details */}
                 <div>
-                  <h3 className="text-base font-bold text-white font-heading">{frog.nameVi}</h3>
+                  <h3 className="text-base font-bold leading-tight text-white font-heading">{frog.nameVi}</h3>
                   <p className="text-[11px] text-slate-400 italic mb-2">
                     {frog.scientificName || frog.nameEn}
                   </p>

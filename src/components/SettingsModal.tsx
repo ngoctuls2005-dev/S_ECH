@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import {
   Settings,
   Volume2,
-  VolumeX,
+  Music2,
   Download,
   Upload,
   RotateCcw,
@@ -87,26 +87,49 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               Âm Thanh
             </h3>
             <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-200 font-medium">Bật / Tắt hiệu ứng âm thanh</span>
+              <div className="flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2 text-sm text-slate-200 font-medium">
+                  <Volume2 className="w-4 h-4 text-pond-300" /> Hiệu ứng âm thanh
+                </span>
                 <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.soundEnabled}
+                  aria-label="Bật hiệu ứng âm thanh"
                   onClick={() => setSettings({ soundEnabled: !settings.soundEnabled })}
-                  className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${
+                  className={`w-12 h-6 shrink-0 rounded-full transition-colors relative p-0.5 ${
                     settings.soundEnabled ? 'bg-pond-500' : 'bg-slate-700'
                   }`}
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                      settings.soundEnabled ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${settings.soundEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
               </div>
 
-              {settings.soundEnabled && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2 text-sm text-slate-200 font-medium">
+                  <Music2 className="w-4 h-4 text-pond-300" /> Nhạc nền ao ếch
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.musicEnabled}
+                  aria-label="Bật nhạc nền"
+                  onClick={() => setSettings({ musicEnabled: !settings.musicEnabled })}
+                  className={`w-12 h-6 shrink-0 rounded-full transition-colors relative p-0.5 ${
+                    settings.musicEnabled ? 'bg-pond-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${settings.musicEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              <p className="text-xs leading-relaxed text-slate-400">
+                Nhạc được tạo ngay trong game và bắt đầu khi bạn bật hoặc chạm vào ếch.
+              </p>
+
+              {(settings.soundEnabled || settings.musicEnabled) && (
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-slate-300">
-                    <span>Âm lượng</span>
+                    <span>Âm lượng chung</span>
                     <span>{Math.round(settings.volume * 100)}%</span>
                   </div>
                   <input

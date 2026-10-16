@@ -6,6 +6,10 @@ export class SoundManager {
   private soundEnabled: boolean = true;
   private volume: number = 0.7;
   private lastPlayTimes: Record<string, number> = {};
+  private musicEnabled: boolean = false;
+  private musicGain: GainNode | null = null;
+  private musicTimer: number | null = null;
+  private musicStep = 0;
 
   constructor(soundEnabled: boolean = true, volume: number = 0.7) {
     this.soundEnabled = soundEnabled;
@@ -14,6 +18,27 @@ export class SoundManager {
 
   public setSoundEnabled(enabled: boolean) {
     this.soundEnabled = enabled;
+  }
+
+  public setMusicEnabled(enabled: boolean) {
+    this.musicEnabled = enabled;
+    if (enabled) {
+      // This setter is called by the settings control, which is a user gesture.
+      if (this.initContext()) this.startMusic();
+    } else {
+      this.stopMusic();
+    }
+  }
+
+  public setMusicPreference(enabled: boolean) {
+    this.musicEnabled = enabled;
+    if (!enabled) this.stopMusic();
+  }
+
+  /** Call from a user gesture so the browser can start audio playback. */
+  public unlockAudio() {
+    if (!this.initContext()) return;
+    if (this.musicEnabled) this.startMusic();
   }
 
   public isSoundEnabled(): boolean {
@@ -47,6 +72,57 @@ export class SoundManager {
     }
 
     return true;
+  }
+
+  private startMusic() {
+    if (!this.musicEnabled || !this.initContext() || !this.ctx || !this.masterGain || this.musicGain) return;
+
+    const musicGain = this.ctx.createGain();
+    musicGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+    musicGain.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + 1.2);
+    musicGain.connect(this.masterGain);
+    this.musicGain = musicGain;
+    this.musicStep = 0;
+
+    // A small pentatonic pond melody, synthesized locally so it works offline.
+    const notes = [196, 246.94, 293.66, 246.94, 220, 261.63, 329.63, 261.63];
+    const playNextNote = () => {
+      if (!this.musicEnabled || !this.ctx || !this.musicGain) return;
+      const t = this.ctx.currentTime;
+      const noteGain = this.ctx.createGain();
+      const oscillator = this.ctx.createOscillator();
+      const frequency = notes[this.musicStep % notes.length];
+      this.musicStep += 1;
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, t);
+      noteGain.gain.setValueAtTime(0.0001, t);
+      noteGain.gain.linearRampToValueAtTime(0.16, t + 0.04);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+      oscillator.connect(noteGain);
+      noteGain.connect(this.musicGain);
+      oscillator.start(t);
+      oscillator.stop(t + 0.8);
+
+      this.musicTimer = window.setTimeout(playNextNote, 900);
+    };
+
+    playNextNote();
+  }
+
+  private stopMusic() {
+    if (this.musicTimer !== null && typeof window !== 'undefined') {
+      window.clearTimeout(this.musicTimer);
+      this.musicTimer = null;
+    }
+
+    if (this.musicGain && this.ctx) {
+      const oldGain = this.musicGain;
+      oldGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      oldGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.04);
+      window.setTimeout(() => oldGain.disconnect(), 250);
+      this.musicGain = null;
+    }
   }
 
   private shouldThrottle(soundId: string, minIntervalMs: number): boolean {
