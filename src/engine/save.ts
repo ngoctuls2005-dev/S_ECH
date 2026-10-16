@@ -55,6 +55,11 @@ function normalizeCounter(value: unknown, fallback: number = 0): number {
     : fallback;
 }
 
+/** Periodic snapshots must not move the offline checkpoint while the page is hidden. */
+export function shouldSaveAutoSnapshot(visibilityState: string): boolean {
+  return visibilityState === 'visible';
+}
+
 /**
  * Migration schema khi cập nhật phiên bản save
  */

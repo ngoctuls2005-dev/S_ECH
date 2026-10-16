@@ -9,6 +9,7 @@ import {
   validateSaveData,
   clearSavedGame,
   STORAGE_KEY,
+  shouldSaveAutoSnapshot,
 } from '../save';
 
 // Mock in-memory Web Storage
@@ -88,6 +89,45 @@ describe('Save System & Import/Export', () => {
       });
       expect(valid.valid).toBe(true);
       expect(valid.cleanData?.points).toBe(500);
+    });
+
+    it('fills missing nested fields in older or partial saves', () => {
+      const migrated = validateSaveData({
+        version: 1,
+        points: 50,
+        totalPointsEarned: 75,
+        totalClicks: 10,
+        settings: { volume: 1.5 },
+        ownedFrogs: { green_frog: { level: 2, fragments: 3 } },
+        pity: { sinceLastRare: 4 },
+      });
+
+      expect(migrated.valid).toBe(true);
+      expect(migrated.cleanData?.upgrades).toEqual({});
+      expect(migrated.cleanData?.pity).toEqual({
+        sinceLastRare: 4,
+        sinceLastEpic: 0,
+        sinceLastLegendary: 0,
+      });
+      expect(migrated.cleanData?.settings).toEqual({
+        soundEnabled: DEFAULT_INITIAL_SAVE.settings.soundEnabled,
+        musicEnabled: DEFAULT_INITIAL_SAVE.settings.musicEnabled,
+        volume: 1,
+        reducedMotion: DEFAULT_INITIAL_SAVE.settings.reducedMotion,
+      });
+      expect(migrated.cleanData?.mainFrogId).toBe('green_frog');
+    });
+
+    it('rejects a save created by a newer game version', () => {
+      const futureSave = { ...DEFAULT_INITIAL_SAVE, version: 2 };
+      expect(validateSaveData(futureSave).valid).toBe(false);
+    });
+  });
+
+  describe('Visibility-aware auto-save policy', () => {
+    it('skips periodic snapshots while hidden so the offline checkpoint cannot advance alone', () => {
+      expect(shouldSaveAutoSnapshot('hidden')).toBe(false);
+      expect(shouldSaveAutoSnapshot('visible')).toBe(true);
     });
   });
 

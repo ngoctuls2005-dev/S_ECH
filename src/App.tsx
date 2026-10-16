@@ -11,7 +11,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { calculateOfflineReward, calculatePointsPerSecond } from './engine/idle';
 import { calculateActiveFrogBuffs, RARITY_CONFIG } from './engine/frogs';
 import { calculateClickPower, calculateCritStats, formatNumber } from './engine/clicker';
-import { saveGameStateToStorage } from './engine/save';
+import { saveGameStateToStorage, shouldSaveAutoSnapshot } from './engine/save';
 import { ACHIEVEMENTS_DEFINITIONS } from './engine/achievements';
 import {
   Sparkles,
@@ -96,6 +96,11 @@ export default function App() {
   // Auto-save periodic & on tab close
   useEffect(() => {
     const saveCurrent = () => {
+      // Visibility change already persisted the exact hide timestamp and current balance.
+      // Saving again from a throttled background interval would advance the save time
+      // without advancing idle points, causing the next offline reward to be understated.
+      if (!shouldSaveAutoSnapshot(document.visibilityState)) return;
+
       const state = useGameStore.getState();
       saveGameStateToStorage({
         version: 1,

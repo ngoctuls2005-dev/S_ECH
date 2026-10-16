@@ -18,9 +18,15 @@
 | P2 | Timeout cũ của hiệu ứng bóp ếch có thể kết thúc hiệu ứng của lần chạm mới; timer ripple còn tồn tại nếu rời màn hình khi hiệu ứng đang chạy. | Dùng một timer có thể thay thế cho hiệu ứng bóp, dọn timer khi component unmount và quản lý vòng đời timer ripple. |
 | P2 | Gacha lên lịch tiếng trứng và hiển thị kết quả trễ. Đóng modal trong lúc nở vẫn có thể phát âm thanh/hiệu ứng sau khi rời màn hình. | Theo dõi và hủy timeout khi đóng modal. Kết quả gacha vẫn được xử lý đồng bộ tại thời điểm người chơi quay. |
 | P3 | Cài đặt `reducedMotion` đã lưu nhưng chưa có giao diện hoặc tác dụng; ếch chính thiếu chuyển động nghỉ nhẹ. | Thêm công tắc giảm chuyển động; thêm nhịp nổi nhẹ cho ếch và vẫn tôn trọng cài đặt của hệ điều hành. |
+| P1 | Autosave định kỳ vẫn chạy khi tab ẩn và có thể cập nhật `lastSavedTimestamp` trong khi số điểm không tăng tương ứng. Nạp lại sau đó có thể tính thiếu thời gian offline. | Bỏ qua snapshot định kỳ khi `document.visibilityState` không phải `visible`; listener `visibilitychange` tiếp tục lưu checkpoint khi tab vừa ẩn. |
 
 ## Kiểm tra
 
-- `npm run build`: chạy sau khi hoàn tất sửa đổi.
-- `git diff --check`: rà khoảng trắng và định dạng diff.
-- Bộ test không chạy trong lượt rà soát này.
+- `npm test`: 10 test files, 95 tests passed.
+- `npm run build`: thành công.
+- `git diff --check`: thành công.
+- Regression test bao phủ migration bản lưu thiếu trường và policy autosave theo trạng thái tab.
+
+## Kiểm tra checkpoint offline
+
+Rà lại luồng `visibilitychange` xác nhận checkpoint lúc ẩn đã được lưu cùng số điểm hiện tại; autosave 5 giây trước đây có thể ghi đè checkpoint đó với thời gian mới hơn khi tab bị ẩn. Đã thêm policy chỉ cho phép snapshot định kỳ khi trang hiển thị và regression test cho policy cùng migration bản lưu. Kiểm thử browser không xác nhận được `visibilityState` chuyển đổi giữa các tab trong browser bridge hiện tại; hành vi này chưa được tái hiện trực tiếp trên browser.
