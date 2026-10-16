@@ -28,6 +28,7 @@ import {
 
 export default function App() {
   const activeTab = useGameStore((s) => s.activeTab);
+  const reducedMotion = useGameStore((s) => s.settings.reducedMotion);
   const setActiveTab = useGameStore((s) => s.setActiveTab);
   const tick = useGameStore((s) => s.tick);
   const handleVisibilityChange = useGameStore((s) => s.handleVisibilityChange);
@@ -127,7 +128,7 @@ export default function App() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-pond-950 to-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-x-hidden pb-20 md:pb-0">
+    <div className={`min-h-screen bg-gradient-to-b from-slate-950 via-pond-950 to-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-x-hidden pb-20 md:pb-0 ${reducedMotion ? 'reduce-motion' : ''}`}>
       <Header />
 
       {/* Main Container: 3-column desktop layout */}

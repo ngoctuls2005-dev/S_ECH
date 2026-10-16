@@ -4,6 +4,7 @@ import {
   Settings,
   Volume2,
   Music2,
+  Waves,
   Download,
   Upload,
   RotateCcw,
@@ -143,6 +144,36 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   />
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-pond-300 font-heading">
+              Hiển Thị
+            </h3>
+            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <span className="flex items-center gap-2 text-sm text-slate-200 font-medium">
+                    <Waves className="w-4 h-4 text-pond-300" /> Giảm chuyển động
+                  </span>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Giảm hoạt họa của ếch, hiệu ứng và các nút trong game.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.reducedMotion}
+                  aria-label="Giảm chuyển động"
+                  onClick={() => setSettings({ reducedMotion: !settings.reducedMotion })}
+                  className={`w-12 h-6 shrink-0 rounded-full transition-colors relative p-0.5 ${
+                    settings.reducedMotion ? 'bg-pond-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${settings.reducedMotion ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
+              </div>
             </div>
           </div>
 

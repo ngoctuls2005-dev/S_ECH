@@ -1,5 +1,6 @@
 import { FrogOwned, GameSettings } from './types';
 import { GachaPityState, INITIAL_PITY_STATE } from './gacha';
+import { FROG_SPECIES_LIST } from '../data/frogs';
 
 export const CURRENT_SAVE_VERSION = 1;
 export const STORAGE_KEY = 's_ech_game_save_v1';
@@ -44,55 +45,113 @@ export const DEFAULT_INITIAL_SAVE: GameSaveData = {
   lastSavedTimestamp: Date.now(),
 };
 
+function isRecord(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeCounter(value: unknown, fallback: number = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : fallback;
+}
+
 /**
  * Migration schema khi cập nhật phiên bản save
  */
 export function migrateSaveData(raw: any): GameSaveData {
-  const version = typeof raw.version === 'number' ? raw.version : 0;
-  let migrated = { ...raw };
+  const rawSettings = isRecord(raw.settings) ? raw.settings : {};
+  const rawUpgrades = isRecord(raw.upgrades) ? raw.upgrades : {};
+  const rawOwnedFrogs = isRecord(raw.ownedFrogs) ? raw.ownedFrogs : {};
+  const validFrogIds = new Set(FROG_SPECIES_LIST.map((frog) => frog.id));
+  const ownedFrogs: Record<string, FrogOwned> = {};
 
-  if (version < 1) {
-    // Migration logic từ version 0 lên version 1
-    migrated.version = 1;
-    if (!migrated.ownedFrogs) migrated.ownedFrogs = DEFAULT_INITIAL_SAVE.ownedFrogs;
-    if (!migrated.mainFrogId) migrated.mainFrogId = 'green_frog';
-    if (!migrated.pity) migrated.pity = INITIAL_PITY_STATE;
-    if (!migrated.unlockedAchievements) migrated.unlockedAchievements = [];
-    if (!migrated.settings) migrated.settings = DEFAULT_INITIAL_SAVE.settings;
+  for (const [frogId, rawFrog] of Object.entries(rawOwnedFrogs)) {
+    if (!validFrogIds.has(frogId) || !isRecord(rawFrog)) continue;
+    ownedFrogs[frogId] = {
+      id: frogId,
+      level: Math.max(1, normalizeCounter(rawFrog.level, 1)),
+      fragments: normalizeCounter(rawFrog.fragments),
+      unlockedAt: normalizeCounter(rawFrog.unlockedAt),
+    };
   }
 
-  return migrated as GameSaveData;
+  if (Object.keys(ownedFrogs).length === 0) {
+    ownedFrogs.green_frog = { ...DEFAULT_INITIAL_SAVE.ownedFrogs.green_frog };
+  }
+
+  const mainFrogId = typeof raw.mainFrogId === 'string' && ownedFrogs[raw.mainFrogId]
+    ? raw.mainFrogId
+    : ownedFrogs.green_frog
+      ? 'green_frog'
+      : Object.keys(ownedFrogs)[0];
+  const rawPity = isRecord(raw.pity) ? raw.pity : {};
+  const settings = {
+    soundEnabled: typeof rawSettings.soundEnabled === 'boolean'
+      ? rawSettings.soundEnabled
+      : DEFAULT_INITIAL_SAVE.settings.soundEnabled,
+    musicEnabled: typeof rawSettings.musicEnabled === 'boolean'
+      ? rawSettings.musicEnabled
+      : DEFAULT_INITIAL_SAVE.settings.musicEnabled,
+    volume: typeof rawSettings.volume === 'number' && Number.isFinite(rawSettings.volume)
+      ? Math.max(0, Math.min(1, rawSettings.volume))
+      : DEFAULT_INITIAL_SAVE.settings.volume,
+    reducedMotion: typeof rawSettings.reducedMotion === 'boolean'
+      ? rawSettings.reducedMotion
+      : DEFAULT_INITIAL_SAVE.settings.reducedMotion,
+  };
+
+  return {
+    version: CURRENT_SAVE_VERSION,
+    points: raw.points,
+    totalPointsEarned: raw.totalPointsEarned,
+    totalClicks: raw.totalClicks,
+    upgrades: Object.fromEntries(
+      Object.entries(rawUpgrades)
+        .filter(([, level]) => typeof level === 'number' && Number.isFinite(level) && level >= 0)
+        .map(([id, level]) => [id, Math.floor(level as number)])
+    ),
+    ownedFrogs,
+    mainFrogId,
+    pity: {
+      sinceLastRare: normalizeCounter(rawPity.sinceLastRare, INITIAL_PITY_STATE.sinceLastRare),
+      sinceLastEpic: normalizeCounter(rawPity.sinceLastEpic, INITIAL_PITY_STATE.sinceLastEpic),
+      sinceLastLegendary: normalizeCounter(rawPity.sinceLastLegendary, INITIAL_PITY_STATE.sinceLastLegendary),
+    },
+    unlockedAchievements: Array.isArray(raw.unlockedAchievements)
+      ? raw.unlockedAchievements.filter((id: unknown): id is string => typeof id === 'string')
+      : [],
+    settings,
+    lastSavedTimestamp: typeof raw.lastSavedTimestamp === 'number'
+      && Number.isFinite(raw.lastSavedTimestamp)
+      && raw.lastSavedTimestamp > 0
+      ? raw.lastSavedTimestamp
+      : Date.now(),
+  };
 }
 
 /**
  * Kiểm tra tính hợp lệ của dữ liệu trước khi nạp vào game
  */
 export function validateSaveData(data: any): { valid: boolean; error?: string; cleanData?: GameSaveData } {
-  if (!data || typeof data !== 'object') {
+  if (!isRecord(data)) {
     return { valid: false, error: 'Dữ liệu không phải là đối tượng hợp lệ' };
   }
 
+  if (typeof data.version === 'number' && data.version > CURRENT_SAVE_VERSION) {
+    return { valid: false, error: 'Bản lưu được tạo bởi phiên bản game mới hơn' };
+  }
+
   // Kiểm tra điểm số
-  if (typeof data.points !== 'number' || isNaN(data.points) || data.points < 0) {
+  if (typeof data.points !== 'number' || !Number.isFinite(data.points) || data.points < 0) {
     return { valid: false, error: 'Điểm số không hợp lệ' };
   }
 
-  if (typeof data.totalPointsEarned !== 'number' || isNaN(data.totalPointsEarned) || data.totalPointsEarned < 0) {
+  if (typeof data.totalPointsEarned !== 'number' || !Number.isFinite(data.totalPointsEarned) || data.totalPointsEarned < 0) {
     return { valid: false, error: 'Tổng điểm kiếm được không hợp lệ' };
   }
 
-  if (typeof data.totalClicks !== 'number' || isNaN(data.totalClicks) || data.totalClicks < 0) {
+  if (typeof data.totalClicks !== 'number' || !Number.isFinite(data.totalClicks) || data.totalClicks < 0) {
     return { valid: false, error: 'Tổng số lượt click không hợp lệ' };
-  }
-
-  // Kiểm tra ếch
-  if (!data.ownedFrogs || typeof data.ownedFrogs !== 'object') {
-    return { valid: false, error: 'Danh sách ếch không hợp lệ' };
-  }
-
-  // Kiểm tra mainFrogId
-  if (typeof data.mainFrogId !== 'string' || !data.mainFrogId) {
-    return { valid: false, error: 'Ếch chính không hợp lệ' };
   }
 
   const clean = migrateSaveData(data);

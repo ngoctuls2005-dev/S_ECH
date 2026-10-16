@@ -23,6 +23,14 @@ export const PondArea: React.FC = () => {
   const [isSquished, setIsSquished] = useState(false);
   const [ripples, setRipples] = useState<ClickRipple[]>([]);
   const pondRef = useRef<HTMLDivElement>(null);
+  const squishTimerRef = useRef<number | null>(null);
+  const rippleTimersRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => () => {
+    if (squishTimerRef.current !== null) window.clearTimeout(squishTimerRef.current);
+    rippleTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    rippleTimersRef.current.clear();
+  }, []);
 
   const species = getFrogSpeciesById(mainFrogId) || getFrogSpeciesById('green_frog')!;
   const ownedInfo = ownedFrogs[mainFrogId] || { level: 1, fragments: 0 };
@@ -42,7 +50,11 @@ export const PondArea: React.FC = () => {
 
     // Hiệu ứng squash
     setIsSquished(true);
-    setTimeout(() => setIsSquished(false), 140);
+    if (squishTimerRef.current !== null) window.clearTimeout(squishTimerRef.current);
+    squishTimerRef.current = window.setTimeout(() => {
+      setIsSquished(false);
+      squishTimerRef.current = null;
+    }, 140);
 
     // Thêm ripple
     const pondRect = pondRef.current?.getBoundingClientRect();
@@ -51,9 +63,11 @@ export const PondArea: React.FC = () => {
       const rippleY = clientY - pondRect.top;
       const newRippleId = `${Date.now()}_${Math.random()}`;
       setRipples((prev) => [...prev, { id: newRippleId, x: rippleX, y: rippleY }]);
-      setTimeout(() => {
+      const timer = window.setTimeout(() => {
         setRipples((prev) => prev.filter((r) => r.id !== newRippleId));
+        rippleTimersRef.current.delete(newRippleId);
       }, 600);
+      rippleTimersRef.current.set(newRippleId, timer);
     }
 
     clickFrog(clientX, clientY);
@@ -170,7 +184,7 @@ export const PondArea: React.FC = () => {
               src={species.image}
               alt={species.nameVi}
               draggable={false}
-              className="h-[min(72vw,21rem)] w-[min(72vw,21rem)] sm:h-[min(58vw,27rem)] sm:w-[min(58vw,27rem)] object-contain drop-shadow-[0_18px_24px_rgba(0,0,0,0.68)] pointer-events-none"
+              className="motion-safe:animate-frog-idle h-[min(72vw,21rem)] w-[min(72vw,21rem)] sm:h-[min(58vw,27rem)] sm:w-[min(58vw,27rem)] object-contain drop-shadow-[0_18px_24px_rgba(0,0,0,0.68)] pointer-events-none"
             />
           </button>
         </div>

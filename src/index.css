@@ -53,6 +53,15 @@ h1, h2, h3, h4, .font-heading {
   }
 }
 
+/* User-controlled motion setting (system preference is also honored below). */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

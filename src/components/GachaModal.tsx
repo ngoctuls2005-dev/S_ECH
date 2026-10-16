@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import {
   GACHA_COST_SINGLE,
@@ -24,6 +24,20 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [showTenPullConfirm, setShowTenPullConfirm] = useState(false);
   const [confirmTenPullSetting, setConfirmTenPullSetting] = useState(true);
   const [results, setResults] = useState<GachaPullResult[] | null>(null);
+  const animationTimersRef = useRef<number[]>([]);
+
+  useEffect(() => () => {
+    animationTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    animationTimersRef.current = [];
+  }, []);
+
+  const scheduleAnimationTimeout = (callback: () => void, delay: number) => {
+    const timer = window.setTimeout(() => {
+      animationTimersRef.current = animationTimersRef.current.filter((pending) => pending !== timer);
+      callback();
+    }, delay);
+    animationTimersRef.current.push(timer);
+  };
 
   const executePull = (count: 1 | 10) => {
     const cost = count === 1 ? GACHA_COST_SINGLE : GACHA_COST_TEN;
@@ -51,11 +65,11 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setIsHatching(true);
       soundManager.playEggCrack();
 
-      setTimeout(() => {
+      scheduleAnimationTimeout(() => {
         soundManager.playEggCrack();
       }, 500);
 
-      setTimeout(() => {
+      scheduleAnimationTimeout(() => {
         setIsHatching(false);
         setIsProcessing(false);
         triggerResultView(session, highestRarity);

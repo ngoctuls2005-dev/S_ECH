@@ -40,6 +40,7 @@ export default {
       animation: {
         'squish': 'squish 0.25s ease-out',
         'float-up': 'floatUp 0.8s ease-out forwards',
+        'frog-idle': 'frogIdle 3.4s ease-in-out infinite',
         'egg-wobble': 'wobble 0.6s ease-in-out infinite',
         'glow-pulse': 'glowPulse 2s ease-in-out infinite',
       },
@@ -53,6 +54,10 @@ export default {
         floatUp: {
           '0%': { opacity: '1', transform: 'translateY(0) scale(1)' },
           '100%': { opacity: '0', transform: 'translateY(-60px) scale(1.3)' },
+        },
+        frogIdle: {
+          '0%, 100%': { transform: 'translateY(0) scale(1)' },
+          '50%': { transform: 'translateY(-5px) scale(1.015)' },
         },
         wobble: {
           '0%, 100%': { transform: 'rotate(0deg)' },
