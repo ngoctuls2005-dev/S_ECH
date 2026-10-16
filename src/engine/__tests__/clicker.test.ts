@@ -26,6 +26,17 @@ describe('Game Economy & Core Clicker Engine', () => {
       expect(power).toBe(8);
     });
 
+    it('adds flat bonuses from v2 upgrades (platinum_hand, legendary_handprint, cosmic_hand)', () => {
+      const upgrades = {
+        platinum_hand: 2,         // +200
+        legendary_handprint: 1,   // +500
+        cosmic_hand: 1,           // +3000
+      };
+      // Base 1 + 200 + 500 + 3000 = 3701
+      const power = calculateClickPower(1, upgrades, []);
+      expect(power).toBe(3701);
+    });
+
     it('applies frog magic (+10% per level) and frog buffs', () => {
       const upgrades = {
         divine_finger: 9, // +9 -> 10 total base
@@ -50,6 +61,16 @@ describe('Game Economy & Core Clicker Engine', () => {
     it('increases crit chance with lucky hand upgrade (+1% per level)', () => {
       const { critChance } = calculateCritStats({ lucky_hand: 5 }, []);
       expect(critChance).toBeCloseTo(0.10);
+    });
+
+    it('increases crit stats with v2 upgrades precise_touch (+2%) and crit_mastery (+0.15)', () => {
+      const { critChance, critMultiplier } = calculateCritStats({
+        lucky_hand: 5,     // 5% + 5% = 10%
+        precise_touch: 3,  // +6% = 16%
+        crit_mastery: 4,   // 2.0 + 4 * 0.15 = 2.6
+      }, []);
+      expect(critChance).toBeCloseTo(0.16);
+      expect(critMultiplier).toBeCloseTo(2.6);
     });
 
     it('applies frog buffs for crit chance and multiplier', () => {

@@ -1,26 +1,48 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useGameStore } from '../store/gameStore';
 import {
   GACHA_COST_SINGLE,
   GACHA_COST_TEN,
+  GACHA_POOLS,
+  GachaPoolType,
   GachaSessionResult,
   GachaPullResult,
+  getSpeciesDropRates,
 } from '../engine/gacha';
 import { RARITY_CONFIG } from '../engine/frogs';
 import { formatNumber } from '../engine/clicker';
 import { soundManager } from '../engine/audio';
 import confetti from 'canvas-confetti';
-import { Sparkles, HelpCircle, X, ChevronRight, RotateCcw } from 'lucide-react';
+import { 
+  Sparkles, 
+  HelpCircle, 
+  X, 
+  History, 
+  RotateCcw, 
+  Flame, 
+  Layers, 
+  ShieldCheck, 
+  CheckCircle2, 
+  ExternalLink 
+} from 'lucide-react';
 
 export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const points = useGameStore((s) => s.points);
   const pity = useGameStore((s) => s.pity);
+  const ownedFrogs = useGameStore((s) => s.ownedFrogs);
+  const gachaHistory = useGameStore((s) => s.gachaHistory);
   const pullGacha = useGameStore((s) => s.pullGacha);
 
+  // Pool Selection State
+  const [selectedPool, setSelectedPool] = useState<GachaPoolType>('ao_sen');
+
+  // Animation & UI States
   const [isHatching, setIsHatching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [skipAnim, setSkipAnim] = useState(false);
   const [showOdds, setShowOdds] = useState(false);
+  const [showDetailedRates, setShowDetailedRates] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showTenPullConfirm, setShowTenPullConfirm] = useState(false);
   const [confirmTenPullSetting, setConfirmTenPullSetting] = useState(true);
   const [results, setResults] = useState<GachaPullResult[] | null>(null);
@@ -39,18 +61,26 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     animationTimersRef.current.push(timer);
   };
 
+  const poolConfig = GACHA_POOLS[selectedPool];
+
+  // Calculate detailed drop rates for current pool
+  const detailedRates = useMemo(
+    () => getSpeciesDropRates(selectedPool, ownedFrogs),
+    [selectedPool, ownedFrogs]
+  );
+
   const executePull = (count: 1 | 10) => {
     const cost = count === 1 ? GACHA_COST_SINGLE : GACHA_COST_TEN;
     if (points < cost || isProcessing || isHatching) return;
 
     setIsProcessing(true);
-    const session = pullGacha(count);
+    const session = pullGacha(count, selectedPool);
     if (!session) {
       setIsProcessing(false);
       return;
     }
 
-    // Tìm độ hiếm cao nhất trong lần quay này để chọn hiệu ứng
+    // Tìm độ hiếm cao nhất trong lần quay này để kích hoạt âm thanh & pháo hoa
     const highestRarity = session.pulls.reduce((highest, pull) => {
       const order = ['common', 'rare', 'epic', 'legendary', 'mythic'];
       return order.indexOf(pull.species.rarity) > order.indexOf(highest)
@@ -67,13 +97,13 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       scheduleAnimationTimeout(() => {
         soundManager.playEggCrack();
-      }, 500);
+      }, 450);
 
       scheduleAnimationTimeout(() => {
         setIsHatching(false);
         setIsProcessing(false);
         triggerResultView(session, highestRarity);
-      }, 1200);
+      }, 1100);
     }
   };
 
@@ -92,8 +122,8 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (highestRarity === 'legendary' || highestRarity === 'mythic') {
       try {
         confetti({
-          particleCount: highestRarity === 'mythic' ? 120 : 70,
-          spread: 80,
+          particleCount: highestRarity === 'mythic' ? 140 : 80,
+          spread: 85,
           origin: { y: 0.6 },
         });
       } catch (e) {}
@@ -107,25 +137,30 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4"
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-slate-900 border border-pond-600/30 rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up"
+        className="bg-slate-900 border border-pond-600/30 rounded-3xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up"
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+        <div className="p-3.5 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-xl shadow-md">
-              🥚
+              {poolConfig.eggEmoji}
             </div>
             <div>
-              <h2 className="text-xl font-bold font-heading text-white">Hồ Gacha Ếch Thần Bí</h2>
-              <p className="text-xs text-slate-400">Ấp trứng sen nhiệm màu để sưu tầm những loài ếch quý</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold font-heading text-white">Hồ Gacha Ếch v2.0</h2>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${poolConfig.badgeClass}`}>
+                  {poolConfig.name}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">3 Hồ chuyên đề độc đáo • Dùng chung bảo hiểm Pity</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setShowOdds(!showOdds)}
               className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1 border border-slate-700"
@@ -133,6 +168,15 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             >
               <HelpCircle className="w-4 h-4 text-emerald-400" />
               <span className="hidden sm:inline">Tỉ lệ</span>
+            </button>
+
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1 border border-slate-700"
+              title="Lịch sử 20 lượt quay gần nhất"
+            >
+              <History className="w-4 h-4 text-purple-400" />
+              <span className="hidden sm:inline">Lịch sử</span>
             </button>
 
             <button
@@ -144,8 +188,37 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Pity Progress Bars */}
-        <div className="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800/80 grid grid-cols-3 gap-2 text-center text-[11px]">
+        {/* 3 Pool Selection Tabs */}
+        <div className="grid grid-cols-3 bg-slate-950/80 border-b border-slate-800 p-1.5 gap-1.5">
+          {(Object.values(GACHA_POOLS) as typeof poolConfig[]).map((pool) => {
+            const isSelected = selectedPool === pool.id;
+            return (
+              <button
+                key={pool.id}
+                onClick={() => {
+                  setSelectedPool(pool.id);
+                  setResults(null);
+                }}
+                className={`py-2 px-2 rounded-2xl flex flex-col items-center justify-center transition-all ${
+                  isSelected
+                    ? `bg-gradient-to-r ${pool.bgGradient} border ${pool.borderGlow} text-white font-bold shadow-md`
+                    : 'bg-slate-900/60 hover:bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">{pool.icon}</span>
+                  <span className="text-xs sm:text-sm font-bold truncate">{pool.name}</span>
+                </div>
+                <span className="text-[10px] text-slate-400 truncate hidden sm:inline mt-0.5">
+                  {pool.subtitle}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Pity Progress Bars (Dùng chung Pity) */}
+        <div className="px-4 py-2 bg-slate-950/60 border-b border-slate-800/80 grid grid-cols-3 gap-2 text-center text-[11px]">
           <div className="bg-slate-900/80 p-1.5 rounded-xl border border-blue-900/30">
             <span className="text-blue-400 font-bold block">Bảo hiểm Hiếm</span>
             <span className="text-slate-300 font-medium">
@@ -161,28 +234,42 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
 
           <div className="bg-slate-900/80 p-1.5 rounded-xl border border-amber-900/30">
-            <span className="text-amber-400 font-bold block">Huyền Thoại</span>
+            <span className="text-amber-400 font-bold block">Bảo hiểm Huyền Thoại</span>
             <span className="text-slate-300 font-medium">
               Còn {Math.max(0, 100 - pity.sinceLastLegendary)} lượt
             </span>
           </div>
         </div>
 
-        {/* Odds Dropdown */}
+        {/* Odds Dropdown Banner */}
         {showOdds && (
-          <div className="p-4 bg-slate-800/90 border-b border-slate-700 text-xs text-slate-300 grid grid-cols-2 sm:grid-cols-5 gap-2 animate-fade-in">
-            {Object.entries(RARITY_CONFIG).map(([key, info]) => (
-              <div key={key} className="p-2 rounded-xl bg-slate-900/60 border border-slate-700 text-center">
-                <span className={`font-bold block ${info.color}`}>{info.nameVi}</span>
-                <span className="text-sm font-extrabold text-white">{info.gachaWeight}%</span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Trùng: +{info.duplicateFragments} mảnh</span>
-              </div>
-            ))}
+          <div className="p-3 bg-slate-800/95 border-b border-slate-700 text-xs text-slate-300 space-y-2 animate-fade-in">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {Object.entries(RARITY_CONFIG).map(([key, info]) => (
+                <div key={key} className="p-2 rounded-xl bg-slate-900/70 border border-slate-700 text-center">
+                  <span className={`font-bold block ${info.color}`}>{info.nameVi}</span>
+                  <span className="text-sm font-extrabold text-white">{info.gachaWeight}%</span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Trùng: +{info.duplicateFragments} mảnh</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between items-center pt-1 border-t border-slate-700/60 text-[11px]">
+              <span className="text-slate-400">
+                💡 Tỉ lệ tổng độ hiếm luôn là 50%/28%/15%/6%/1%. Trùng ếch tự động quy đổi thành mảnh thăng cấp.
+              </span>
+              <button
+                onClick={() => setShowDetailedRates(true)}
+                className="text-emerald-400 hover:text-emerald-300 font-bold underline flex items-center gap-1 shrink-0 ml-2"
+              >
+                <span>Xem Bảng Tỷ Lệ Từng Loài</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
           </div>
         )}
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center justify-center min-h-[300px]">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col items-center justify-center min-h-[300px]">
           {results ? (
             /* Result Cards Screen */
             <div className="w-full">
@@ -190,7 +277,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 🎉 Bạn Nhận Được:
               </h3>
 
-              {/* Summary Stats Banner for 10x Pull / Results */}
+              {/* Summary Stats Banner for Pull Results */}
               <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-pond-950/80 via-slate-900/90 to-purple-950/80 border border-pond-500/30 flex flex-wrap items-center justify-around gap-2 text-xs shadow-md">
                 <span className="text-white font-medium flex items-center gap-1.5">
                   <span>Khám phá:</span>
@@ -275,23 +362,37 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
           ) : (
             /* Egg Stage Screen */
-            <div className="flex flex-col items-center justify-center my-6">
-              <div className="relative">
-                {/* Hào quang nền trứng */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500/20 to-pond-400/20 blur-3xl animate-pulse" />
+            <div className="flex flex-col items-center justify-center my-4 text-center">
+              {/* Pool Banner Card */}
+              <div className={`mb-4 px-4 py-2.5 rounded-2xl border ${poolConfig.borderGlow} bg-slate-950/70 max-w-md`}>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {poolConfig.description}
+                </p>
+                {poolConfig.rateUpFrogIds.length > 0 && (
+                  <div className="mt-2 flex items-center justify-center gap-1 text-[11px] text-amber-400 font-semibold">
+                    <Flame className="w-3.5 h-3.5" />
+                    <span>Rate-Up x3 trọng số các loài đặc trưng!</span>
+                  </div>
+                )}
+              </div>
 
-                {/* Trứng Ếch Gacha */}
+              <div className="relative">
+                {/* Glow ring */}
+                <div className={`absolute inset-0 rounded-full blur-3xl animate-pulse opacity-40 bg-gradient-to-tr ${poolConfig.bgGradient}`} />
+
+                {/* Egg Container */}
                 <div
                   className={`text-8xl sm:text-9xl cursor-pointer select-none transition-transform duration-200 ${
                     isHatching ? 'animate-egg-wobble scale-110' : 'hover:scale-105'
                   }`}
                   onClick={() => handlePullClick(1)}
+                  title="Nhấp để ấp trứng!"
                 >
-                  {isHatching ? '✨🥚✨' : '🥚'}
+                  {isHatching ? `✨${poolConfig.eggEmoji}✨` : poolConfig.eggEmoji}
                 </div>
               </div>
 
-              <p className="mt-4 text-xs text-slate-400">
+              <p className="mt-3 text-xs text-slate-400">
                 {isHatching ? 'Đang nở... chuẩn bị đón ếch mới!' : 'Chọn số lượt mở bên dưới'}
               </p>
             </div>
@@ -299,7 +400,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="p-3.5 sm:p-4 border-t border-slate-800 bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
@@ -327,7 +428,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <button
               disabled={points < GACHA_COST_SINGLE || isHatching || isProcessing}
               onClick={() => handlePullClick(1)}
-              className={`flex-1 sm:flex-initial px-5 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+              className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
                 points >= GACHA_COST_SINGLE && !isHatching && !isProcessing
                   ? 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-md'
                   : 'bg-slate-800/50 text-slate-500 border border-slate-800 cursor-not-allowed'
@@ -341,7 +442,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <button
               disabled={points < GACHA_COST_TEN || isHatching || isProcessing}
               onClick={() => handlePullClick(10)}
-              className={`flex-1 sm:flex-initial px-6 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+              className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
                 points >= GACHA_COST_TEN && !isHatching && !isProcessing
                   ? 'bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white shadow-lg shadow-purple-500/25'
                   : 'bg-slate-800/50 text-slate-500 border border-slate-800 cursor-not-allowed'
@@ -355,7 +456,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
       </div>
 
-      {/* Confirmation Modal for 10x Pull (D1 Chống bấm nhầm) */}
+      {/* Confirmation Modal for 10x Pull */}
       {showTenPullConfirm && (
         <div 
           onClick={() => setShowTenPullConfirm(false)}
@@ -366,16 +467,20 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             className="bg-slate-900 border border-purple-500/50 p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl animate-scale-up space-y-4"
           >
             <div className="w-14 h-14 rounded-2xl bg-purple-600/20 border border-purple-400/30 flex items-center justify-center text-3xl mx-auto shadow-inner">
-              🥚✨
+              {poolConfig.eggEmoji}✨
             </div>
             <div>
               <h3 className="text-lg font-bold font-heading text-white">Xác Nhận Quay 10 Lượt</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Bạn có chắc chắn muốn sử dụng 5.000 điểm để ấp 10 trứng liên tiếp?
+                Tại {poolConfig.name} với chi phí 5.000 điểm sờ ếch
               </p>
             </div>
 
             <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-400">
+                <span>Hồ Gacha:</span>
+                <span className="font-bold text-emerald-400">{poolConfig.name}</span>
+              </div>
               <div className="flex justify-between text-slate-400">
                 <span>Số lượt quay:</span>
                 <span className="font-bold text-white">10 Lượt</span>
@@ -383,10 +488,6 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <div className="flex justify-between text-slate-400">
                 <span>Chi phí:</span>
                 <span className="font-bold text-yellow-300">-{formatNumber(GACHA_COST_TEN)} điểm</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Số điểm hiện tại:</span>
-                <span className="font-bold text-emerald-400">{points.toLocaleString('vi-VN')} điểm</span>
               </div>
               <div className="flex justify-between text-slate-400 border-t border-slate-800/80 pt-2">
                 <span>Điểm sau khi quay:</span>
@@ -414,6 +515,146 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               >
                 Xác Nhận Quay
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Drop Rates Modal */}
+      {showDetailedRates && (
+        <div 
+          onClick={() => setShowDetailedRates(false)}
+          className="fixed inset-0 z-[65] bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+          >
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white font-heading">
+                  Bảng Xác Suất Chi Tiết: {poolConfig.name}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Xác suất thực tế dựa theo độ hiếm và hệ số Rate-Up của hồ hiện tại
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDetailedRates(false)}
+                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {detailedRates.map(({ frog, dropChancePercent, isRateUp }) => {
+                const rarity = RARITY_CONFIG[frog.rarity];
+                return (
+                  <div 
+                    key={frog.id}
+                    className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
+                      isRateUp 
+                        ? 'border-amber-500/50 bg-amber-950/20' 
+                        : 'border-slate-800 bg-slate-950/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <img src={frog.image} alt={frog.nameVi} className="w-8 h-8 object-contain" />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-white">{frog.nameVi}</span>
+                          {isRateUp && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-500 text-slate-950">
+                              RATE-UP
+                            </span>
+                          )}
+                        </div>
+                        <span className={`text-[10px] ${rarity.color}`}>{rarity.nameVi}</span>
+                      </div>
+                    </div>
+                    <span className="font-extrabold text-emerald-400 text-xs">
+                      {dropChancePercent}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History Modal (20 lượt gần nhất) */}
+      {showHistoryModal && (
+        <div 
+          onClick={() => setShowHistoryModal(false)}
+          className="fixed inset-0 z-[65] bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+          >
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white font-heading">
+                  Lịch Sử Quay Gacha (20 lượt gần nhất)
+                </h3>
+                <p className="text-xs text-slate-400">Lưu trữ kết quả các lần mở trứng gần đây</p>
+              </div>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {(!gachaHistory || gachaHistory.length === 0) ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  Chưa có lịch sử quay nào. Hãy thử ấp quả trứng đầu tiên!
+                </div>
+              ) : (
+                gachaHistory.map((item) => {
+                  const rarity = RARITY_CONFIG[item.rarity];
+                  const pool = GACHA_POOLS[item.poolId] || GACHA_POOLS.ao_sen;
+                  const timeStr = new Date(item.timestamp).toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${rarity.badgeBg}`}>
+                          {rarity.nameVi}
+                        </span>
+                        <div>
+                          <span className="font-bold text-white block">{item.frogNameVi}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {pool.name} • {timeStr}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        {item.isNew ? (
+                          <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded-md border border-rose-500/30">
+                            MỚI ✨
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-yellow-300 bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-500/30">
+                            +{item.fragmentsAdded} Mảnh
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

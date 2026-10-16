@@ -44,10 +44,12 @@ export interface UpgradeConfig {
   description: string;
   icon: string;
   basePrice: number;
+  category?: 'click' | 'idle' | 'special';
   effectType: 
     | 'click_flat'         // +X điểm mỗi click
     | 'idle_flat'          // +X điểm mỗi giây
     | 'crit_chance_flat'   // +X% tỉ lệ chí mạng
+    | 'crit_multiplier_flat' // +X hệ số nhân chí mạng
     | 'combo_bonus_flat'   // Tăng hiệu quả combo
     | 'multiplier_percent';// Tăng % tổng điểm nhận
   effectValue: number;
@@ -66,12 +68,15 @@ export interface Achievement {
   name: string;
   description: string;
   icon: string;
-  category: 'click' | 'score' | 'gacha' | 'collection' | 'upgrade';
+  category: 'click' | 'score' | 'gacha' | 'collection' | 'upgrade' | 'special';
   target: number;
   progress: number;
   isUnlocked: boolean;
   unlockedAt?: number;
+  rewardPoints?: number;
+  isSecret?: boolean;
 }
+
 
 export interface GameSettings {
   soundEnabled: boolean;

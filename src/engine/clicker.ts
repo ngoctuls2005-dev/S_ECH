@@ -25,6 +25,12 @@ export function calculateClickPower(
   flatBonus += (upgradeLevels['divine_finger'] || 0) * 1;
   // Găng tay mềm mại (+5/click)
   flatBonus += (upgradeLevels['soft_glove'] || 0) * 5;
+  // Bàn tay bạch kim (+100/click)
+  flatBonus += (upgradeLevels['platinum_hand'] || 0) * 100;
+  // Dấu tay huyền thoại (+500/click)
+  flatBonus += (upgradeLevels['legendary_handprint'] || 0) * 500;
+  // Bàn tay vũ trụ (+3000/click)
+  flatBonus += (upgradeLevels['cosmic_hand'] || 0) * 3000;
 
   // Phép thuật ếch (+10% tổng điểm mỗi level)
   const magicLevel = upgradeLevels['frog_magic'] || 0;
@@ -56,6 +62,14 @@ export function calculateCritStats(
   // Bàn tay may mắn (+1% chí mạng mỗi level)
   const luckyLevel = upgradeLevels['lucky_hand'] || 0;
   critChance += luckyLevel * 0.01;
+
+  // Thuật sờ chuẩn xác (+2% chí mạng mỗi level)
+  const preciseLevel = upgradeLevels['precise_touch'] || 0;
+  critChance += preciseLevel * 0.02;
+
+  // Luyện sờ chí mạng (+0.15 hệ số nhân chí mạng mỗi level)
+  const masteryLevel = upgradeLevels['crit_mastery'] || 0;
+  critMultiplier += masteryLevel * 0.15;
 
   for (const buff of activeFrogBuffs) {
     if (buff.type === 'crit_chance_bonus') {

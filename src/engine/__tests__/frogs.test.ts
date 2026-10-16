@@ -9,12 +9,43 @@ import {
   canLevelUpFrog,
   levelUpFrog,
   calculateActiveFrogBuffs,
+  previewFrogBuffImpact,
   getFrogSpeciesById,
 } from '../frogs';
 
-describe('Frog Collection & Real Assets System', () => {
-  it('contains at least 15 valid frog species', () => {
-    expect(FROG_SPECIES_LIST.length).toBeGreaterThanOrEqual(15);
+describe('Frog Collection v2.0 & Real Assets System', () => {
+  it('contains exactly 40 frog species with targeted rarity distribution', () => {
+    expect(FROG_SPECIES_LIST.length).toBe(40);
+
+    const counts = {
+      common: 0,
+      rare: 0,
+      epic: 0,
+      legendary: 0,
+      mythic: 0,
+    };
+
+    for (const frog of FROG_SPECIES_LIST) {
+      counts[frog.rarity]++;
+    }
+
+    expect(counts.common).toBe(8);
+    expect(counts.rare).toBe(10);
+    expect(counts.epic).toBe(11);
+    expect(counts.legendary).toBe(6);
+    expect(counts.mythic).toBe(5);
+  });
+
+  it('correctly standardizes taxonomy for glass_frog and rain_frog', () => {
+    const glassFrog = FROG_SPECIES_LIST.find((f) => f.id === 'glass_frog');
+    expect(glassFrog).toBeDefined();
+    expect(glassFrog?.scientificName).toBe('Centrolene prosoblepon');
+    expect(glassFrog?.nameVi).toContain('Ngọc Lục Bảo');
+
+    const rainFrog = FROG_SPECIES_LIST.find((f) => f.id === 'rain_frog');
+    expect(rainFrog).toBeDefined();
+    expect(rainFrog?.scientificName).toBe('Breviceps adspersus');
+    expect(rainFrog?.nameVi).toContain('Bụi Rậm');
   });
 
   it('each frog species has valid name, scientificName, rarity, and credit information', () => {
@@ -25,7 +56,7 @@ describe('Frog Collection & Real Assets System', () => {
       expect(RARITY_CONFIG[frog.rarity]).toBeDefined();
       expect(frog.buff).toBeDefined();
       expect(frog.buff.value).toBeGreaterThan(0);
-      expect(frog.credit.source).toBe('Wikimedia Commons');
+      expect(frog.credit.source.length).toBeGreaterThan(0);
       expect(frog.credit.author.length).toBeGreaterThan(0);
       expect(frog.credit.license.length).toBeGreaterThan(0);
     }
@@ -53,9 +84,7 @@ describe('Frog Collection & Real Assets System', () => {
     });
 
     it('scales buff value with frog level (+25% per level above 1)', () => {
-      // base 0.10, level 1 -> 0.10
       expect(calculateFrogBuffValue(0.10, 1)).toBe(0.10);
-      // base 0.10, level 2 -> 0.10 * 1.25 = 0.125
       expect(calculateFrogBuffValue(0.10, 2)).toBe(0.125);
     });
 
@@ -73,26 +102,61 @@ describe('Frog Collection & Real Assets System', () => {
       const successRes = levelUpFrog(readyFrog);
       expect(successRes.success).toBe(true);
       expect(successRes.newFrog.level).toBe(2);
-      expect(successRes.newFrog.fragments).toBe(2); // 7 - 5 = 2
+      expect(successRes.newFrog.fragments).toBe(2);
     });
   });
 
-  describe('calculateActiveFrogBuffs', () => {
+  describe('calculateActiveFrogBuffs & Soft-cap balancing', () => {
     it('applies 100% buff for main frog and 20% passive collection buff for other owned frogs', () => {
       const owned = {
         green_frog: { id: 'green_frog', level: 1, fragments: 0, unlockedAt: 1 },
         tomato_frog: { id: 'tomato_frog', level: 1, fragments: 0, unlockedAt: 2 },
       };
 
-      // Set green_frog as main
       const buffsWithGreenMain = calculateActiveFrogBuffs('green_frog', owned);
       
       const greenBuff = buffsWithGreenMain.find((b) => b.type === 'click_points_percent' && b.value === 0.10);
-      expect(greenBuff).toBeDefined(); // 100% of 0.10
+      expect(greenBuff).toBeDefined();
 
-      // tomato_frog has base 0.25 click_points_percent, as passive it gives 20% -> 0.05
       const tomatoPassive = buffsWithGreenMain.find((b) => b.type === 'click_points_percent' && b.value === 0.05);
       expect(tomatoPassive).toBeDefined();
+    });
+
+    it('safeguards passive crit and discounts with diminishing returns when owning all 40 frogs', () => {
+      // Simulate player owning all 40 frogs at level 1
+      const allOwned: Record<string, any> = {};
+      for (const f of FROG_SPECIES_LIST) {
+        allOwned[f.id] = { id: f.id, level: 1, fragments: 0, unlockedAt: Date.now() };
+      }
+
+      const buffs = calculateActiveFrogBuffs('green_frog', allOwned);
+
+      // Total crit chance bonus from passive frogs must remain safely below 35%
+      const passiveCrits = buffs.filter((b) => b.type === 'crit_chance_bonus');
+      const totalPassiveCrit = passiveCrits.reduce((acc, curr) => acc + curr.value, 0);
+      expect(totalPassiveCrit).toBeLessThanOrEqual(0.35);
+
+      // Total upgrade discount from passive frogs must remain below 50%
+      const passiveDiscounts = buffs.filter((b) => b.type === 'upgrade_discount_percent');
+      const totalPassiveDiscount = passiveDiscounts.reduce((acc, curr) => acc + curr.value, 0);
+      expect(totalPassiveDiscount).toBeLessThanOrEqual(0.50);
+    });
+
+    it('previews buff impact correctly when switching main frog', () => {
+      const owned = {
+        green_frog: { id: 'green_frog', level: 1, fragments: 0, unlockedAt: 1 },
+        tomato_frog: { id: 'tomato_frog', level: 1, fragments: 0, unlockedAt: 2 },
+      };
+
+      const { currentBuffs, previewBuffs } = previewFrogBuffImpact('green_frog', 'tomato_frog', owned);
+      expect(currentBuffs).toBeDefined();
+      expect(previewBuffs).toBeDefined();
+
+      const currentMain = currentBuffs.find((b) => b.value === 0.10);
+      expect(currentMain).toBeDefined();
+
+      const previewMain = previewBuffs.find((b) => b.value === 0.25);
+      expect(previewMain).toBeDefined();
     });
   });
 });

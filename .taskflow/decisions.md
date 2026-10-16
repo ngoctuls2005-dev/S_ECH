@@ -185,3 +185,45 @@
 ### [F08] VERIFIED (2026-10-15T15:15:55Z)
 - **Test tự động:** 1 lệnh PASS
 
+### [E01] Ghi chú quyết định (2026-10-16T09:23:55Z)
+- **Vì sao (Why):** Mo rong Cua hang Nang cap tu 8 len 18 theo ke hoach v2.0
+- **Thay đổi & Tác động (Change):** Them 10 nang cap moi vao UPGRADES_CONFIG; cap nhat bo tinh toan clicker va idle; nang cap giao dien UpgradePanel voi bo loc category, uoc tinh thoi gian va milestones; bo sung test cases v2 pass 100%
+
+### [E01] VERIFIED (2026-10-16T09:24:06Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [E02] Ghi chú quyết định (2026-10-16T09:33:01Z)
+- **Vì sao (Why):** Mo rong tu 15 len 40 loai ech (8 Common, 10 Rare, 11 Epic, 6 Legendary, 5 Mythic), tao 25 anh WebP moi chat luong cao, chuan hoa du lieu Centrolene prosoblepon va Breviceps adspersus, bo sung soft-cap diminishing returns cho passive buffs tranh tran chi so, va nang cap CollectionModal voi tim kiem, loc buff, sap xep, yeu thich, preview delta Click/PPS
+- **Thay đổi & Tác động (Change):** src/data/frogs.ts, src/engine/frogs.ts, src/components/CollectionModal.tsx, scripts/generate_v2_frog_assets.py, public/assets/frogs/*.webp, src/engine/__tests__/frogs.test.ts
+
+### [E02] VERIFIED (2026-10-16T09:33:09Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [E03] Ghi chú quyết định (2026-10-16T09:37:39Z)
+- **Vì sao (Why):** Trien khai 3 ho Gacha (Ao Sen, Rung Mua rate-up nhiet doi, Dem Trang rate-up bong dem va mythic) dung chung Pity, luu tru 20 luot lich su, tinh xac suat roi chi tiet tung loai xap xi 100%, va giao dien GachaModal co tabs chon ho, xem lich su, xem chi tiet ty le va che do quay nhanh
+- **Thay đổi & Tác động (Change):** src/engine/gacha.ts, src/store/gameStore.ts, src/components/GachaModal.tsx, src/engine/__tests__/gacha.test.ts
+
+### [E03] VERIFIED (2026-10-16T09:37:48Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [E04] Ghi chú quyết định (2026-10-16T09:42:40Z)
+- **Vì sao (Why):** Mo rong thanh tuu tu 12 len 40 thanh tuu (bao toan 12 ID cu, them 28 thanh tuu moi covering clicks, combos, crits, scores, upgrades, gacha va secret), sua loi AchievementsModal truyen upgrades rong sang lay upgradeLevels thuc te tu Zustand, va tich hop phan thuong diem tu dong khi mo khoa thanh tuu
+- **Thay đổi & Tác động (Change):** src/engine/achievements.ts, src/engine/types.ts, src/components/AchievementsModal.tsx, src/store/gameStore.ts, src/engine/__tests__/achievements.test.ts
+
+### [E04] VERIFIED (2026-10-16T09:42:48Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [E05] Ghi chú quyết định (2026-10-16T09:46:49Z)
+- **Vì sao (Why):** Them Combo Milestones (5, 10, 20, 50) voi visual banner va Web Audio SFX chuc mung, bo sung am thanh chao hoi rieng biet cho tung loai ech theo do hiem, va nang cap he thong luu tru Save V2 tuong thich 100% nguoc voi save v1 cu, migrate tu dong khong mat diem, ech hay thanh tuu
+- **Thay đổi & Tác động (Change):** src/engine/audio.ts, src/components/PondArea.tsx, src/engine/save.ts, src/engine/__tests__/save.test.ts, src/engine/__tests__/audio.test.ts
+
+### [E05] VERIFIED (2026-10-16T09:46:59Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [E06] Ghi chú quyết định (2026-10-16T09:49:50Z)
+- **Vì sao (Why):** Mo phong kinh te late game voi 18 nang cap va 40 loai ech an toan trong Number.MAX_SAFE_INTEGER, kiem chung tong xac suat 3 ho Gacha bang 100%, sua imports calculateClickPower va calculatePointsPerSecond trong CollectionModal, va chay thanh cong npm test voi 105 tests PASS va npm run build khong loi
+- **Thay đổi & Tác động (Change):** src/engine/__tests__/balance.test.ts, src/components/CollectionModal.tsx, dist/*
+
+### [E06] VERIFIED (2026-10-16T09:50:10Z)
+- **Test tự động:** 1 lệnh PASS
+

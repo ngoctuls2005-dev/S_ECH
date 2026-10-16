@@ -244,9 +244,66 @@ export class SoundManager {
   }
 
   /**
+   * Âm thanh đạt mốc Combo (5, 10, 20, 50)
+   */
+  public playComboMilestone(milestone: 5 | 10 | 20 | 50) {
+    if (!this.soundEnabled) return;
+    if (!this.initContext() || !this.ctx || !this.masterGain) return;
+
+    const t = this.ctx.currentTime;
+    let notes: number[];
+
+    if (milestone === 50) {
+      notes = [523.25, 659.25, 783.99, 1046.50]; // Đô5 - Mi5 - Sol5 - Đô6 (Grand fanfare)
+    } else if (milestone === 20) {
+      notes = [440, 554.37, 659.25]; // La4 - Đô#5 - Mi5 (Trio chime)
+    } else if (milestone === 10) {
+      notes = [392, 523.25]; // Sol4 - Đô5 (Duo pop)
+    } else {
+      notes = [329.63, 392]; // Mi4 - Sol4 (Minor pop)
+    }
+
+    notes.forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const startTime = t + idx * 0.06;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.3, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.28);
+    });
+  }
+
+  /**
+   * Biến thể tiếng ếch chào hỏi khi đổi ếch chính theo độ hiếm
+   */
+  public playFrogGreeting(rarity: Rarity = 'common') {
+    if (rarity === 'mythic') {
+      this.playRibbit(1.3);
+      this.playComboMilestone(20);
+    } else if (rarity === 'legendary') {
+      this.playRibbit(1.15);
+      this.playComboMilestone(10);
+    } else if (rarity === 'epic') {
+      this.playRibbit(0.85); // Giọng trầm uy lực
+    } else {
+      this.playRibbit(1.0);
+    }
+  }
+
+  /**
    * Tiếng trứng Gacha rung & nứt vỡ
    */
   public playEggCrack() {
+
     if (!this.soundEnabled) return;
     if (!this.initContext() || !this.ctx || !this.masterGain) return;
 

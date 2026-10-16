@@ -34,6 +34,16 @@ export function calculatePointsPerSecond(
   flatIdle += (upgradeLevels['frog_touch_team'] || 0) * 10;
   // Nhà máy sờ ếch (+100/giây)
   flatIdle += (upgradeLevels['frog_factory'] || 0) * 100;
+  // Băng chuyền sờ ếch (+500/giây)
+  flatIdle += (upgradeLevels['conveyor_touch'] || 0) * 500;
+  // Robot sờ ếch (+2.500/giây)
+  flatIdle += (upgradeLevels['robot_touch'] || 0) * 2500;
+  // Trại sờ ếch (+12.000/giây)
+  flatIdle += (upgradeLevels['frog_ranch'] || 0) * 12000;
+  // Tập đoàn sờ ếch (+80.000/giây)
+  flatIdle += (upgradeLevels['frog_corporation'] || 0) * 80000;
+  // Thánh địa sờ ếch (+300.000/giây)
+  flatIdle += (upgradeLevels['frog_sanctuary'] || 0) * 300000;
 
   if (flatIdle <= 0) return 0;
 

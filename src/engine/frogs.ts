@@ -104,9 +104,23 @@ export function levelUpFrog(frogOwned: FrogOwned): { success: boolean; newFrog: 
 }
 
 /**
+ * Ngưỡng kích hoạt diminishing returns cho từng loại passive collection buff
+ */
+const PASSIVE_CAPS: Record<FrogBuff['type'], { threshold: number; scale: number; hardCap?: number }> = {
+  crit_chance_bonus: { threshold: 0.25, scale: 0.15, hardCap: 0.35 },
+  upgrade_discount_percent: { threshold: 0.35, scale: 0.15, hardCap: 0.50 },
+  click_points_percent: { threshold: 1.50, scale: 2.50 },
+  idle_points_percent: { threshold: 1.50, scale: 2.50 },
+  total_points_percent: { threshold: 1.50, scale: 2.50 },
+  combo_bonus_percent: { threshold: 1.50, scale: 2.50 },
+  crit_multiplier_bonus: { threshold: 2.00, scale: 3.00 },
+};
+
+/**
  * Tính toán toàn bộ buff đang hoạt động:
  * - Ếch Chính (Main Frog): 100% hiệu lực buff theo level
  * - Tất cả các ếch khác đã sở hữu: 20% passive collection buff (thưởng sưu tầm)
+ * - Áp dụng Soft-cap / Diminishing returns cho nhóm passive khi mở rộng lên 40 loài
  */
 export function calculateActiveFrogBuffs(
   mainFrogId: string,
@@ -117,7 +131,16 @@ export function calculateActiveFrogBuffs(
     speciesMap.set(s.id, s);
   }
 
-  const activeBuffs: FrogBuff[] = [];
+  const mainBuffs: FrogBuff[] = [];
+  const rawPassiveByType: Record<FrogBuff['type'], { frogId: string; value: number }[]> = {
+    click_points_percent: [],
+    idle_points_percent: [],
+    crit_chance_bonus: [],
+    crit_multiplier_bonus: [],
+    combo_bonus_percent: [],
+    total_points_percent: [],
+    upgrade_discount_percent: [],
+  };
 
   for (const [frogId, owned] of Object.entries(ownedFrogs)) {
     const species = speciesMap.get(frogId);
@@ -128,21 +151,66 @@ export function calculateActiveFrogBuffs(
 
     if (frogId === mainFrogId) {
       // Ếch chính: 100%
-      activeBuffs.push({
+      mainBuffs.push({
         type: baseBuff.type,
         value: scaledValue,
       });
     } else {
-      // Passive collection buff: 20% của scaledValue
-      activeBuffs.push({
-        type: baseBuff.type,
-        value: Number((scaledValue * 0.20).toFixed(4)),
+      // Passive collection buff thô: 20% của scaledValue
+      const rawPassiveVal = Number((scaledValue * 0.20).toFixed(4));
+      rawPassiveByType[baseBuff.type].push({
+        frogId,
+        value: rawPassiveVal,
       });
     }
   }
 
-  return activeBuffs;
+  // Áp dụng soft-cap diminishing returns cho passive buffs
+  const passiveBuffs: FrogBuff[] = [];
+  for (const [typeKey, list] of Object.entries(rawPassiveByType) as [FrogBuff['type'], { frogId: string; value: number }[]][]) {
+    if (list.length === 0) continue;
+    const rawTotal = list.reduce((acc, curr) => acc + curr.value, 0);
+    const capRule = PASSIVE_CAPS[typeKey];
+
+    if (!capRule || rawTotal <= capRule.threshold) {
+      // Dưới ngưỡng: giữ nguyên 100% không suy giảm
+      for (const item of list) {
+        passiveBuffs.push({ type: typeKey, value: item.value });
+      }
+    } else {
+      // Vượt ngưỡng: nén phần vượt mức bằng hàm hyperbolic mượt mà
+      const excess = rawTotal - capRule.threshold;
+      let effectiveTotal = capRule.threshold + (excess / (1 + excess / capRule.scale));
+      if (capRule.hardCap && effectiveTotal > capRule.hardCap) {
+        effectiveTotal = capRule.hardCap;
+      }
+      const scaleFactor = effectiveTotal / rawTotal;
+
+      for (const item of list) {
+        passiveBuffs.push({
+          type: typeKey,
+          value: Number((item.value * scaleFactor).toFixed(4)),
+        });
+      }
+    }
+  }
+
+  return [...mainBuffs, ...passiveBuffs];
 }
+
+/**
+ * Xem trước sự thay đổi buff khi người chơi đổi ếch chính sang candidateId
+ */
+export function previewFrogBuffImpact(
+  currentMainId: string,
+  candidateId: string,
+  ownedFrogs: Record<string, FrogOwned>
+): { currentBuffs: FrogBuff[]; previewBuffs: FrogBuff[] } {
+  const currentBuffs = calculateActiveFrogBuffs(currentMainId, ownedFrogs);
+  const previewBuffs = calculateActiveFrogBuffs(candidateId, ownedFrogs);
+  return { currentBuffs, previewBuffs };
+}
+
 
 /**
  * Lấy loài ếch theo ID

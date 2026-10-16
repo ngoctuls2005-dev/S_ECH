@@ -1,9 +1,10 @@
 import { FrogOwned, GameSettings } from './types';
-import { GachaPityState, INITIAL_PITY_STATE } from './gacha';
+import { GachaPityState, INITIAL_PITY_STATE, GachaHistoryEntry } from './gacha';
 import { FROG_SPECIES_LIST } from '../data/frogs';
 
-export const CURRENT_SAVE_VERSION = 1;
-export const STORAGE_KEY = 's_ech_game_save_v1';
+export const CURRENT_SAVE_VERSION = 2;
+export const STORAGE_KEY = 's_ech_game_save_v2';
+export const LEGACY_STORAGE_KEY = 's_ech_game_save_v1';
 
 export interface GameSaveData {
   version: number;
@@ -16,6 +17,8 @@ export interface GameSaveData {
   pity: GachaPityState;
   unlockedAchievements: string[];
   settings: GameSettings;
+  favoriteFrogIds?: string[];
+  gachaHistory?: GachaHistoryEntry[];
   lastSavedTimestamp: number;
 }
 
@@ -42,6 +45,8 @@ export const DEFAULT_INITIAL_SAVE: GameSaveData = {
     volume: 0.7,
     reducedMotion: false,
   },
+  favoriteFrogIds: [],
+  gachaHistory: [],
   lastSavedTimestamp: Date.now(),
 };
 
@@ -61,7 +66,7 @@ export function shouldSaveAutoSnapshot(visibilityState: string): boolean {
 }
 
 /**
- * Migration schema khi cập nhật phiên bản save
+ * Migration schema khi cập nhật phiên bản save (Hỗ trợ migrate từ v1 lên v2)
  */
 export function migrateSaveData(raw: any): GameSaveData {
   const rawSettings = isRecord(raw.settings) ? raw.settings : {};
@@ -105,6 +110,14 @@ export function migrateSaveData(raw: any): GameSaveData {
       : DEFAULT_INITIAL_SAVE.settings.reducedMotion,
   };
 
+  const favoriteFrogIds = Array.isArray(raw.favoriteFrogIds)
+    ? raw.favoriteFrogIds.filter((id: unknown): id is string => typeof id === 'string')
+    : [];
+
+  const gachaHistory = Array.isArray(raw.gachaHistory)
+    ? raw.gachaHistory.slice(0, 20)
+    : [];
+
   return {
     version: CURRENT_SAVE_VERSION,
     points: raw.points,
@@ -126,6 +139,8 @@ export function migrateSaveData(raw: any): GameSaveData {
       ? raw.unlockedAchievements.filter((id: unknown): id is string => typeof id === 'string')
       : [],
     settings,
+    favoriteFrogIds,
+    gachaHistory,
     lastSavedTimestamp: typeof raw.lastSavedTimestamp === 'number'
       && Number.isFinite(raw.lastSavedTimestamp)
       && raw.lastSavedTimestamp > 0
@@ -159,28 +174,24 @@ export function validateSaveData(data: any): { valid: boolean; error?: string; c
     return { valid: false, error: 'Tổng số lượt click không hợp lệ' };
   }
 
-  const clean = migrateSaveData(data);
-  return { valid: true, cleanData: clean };
+  const cleanData = migrateSaveData(data);
+  return { valid: true, cleanData };
 }
 
 /**
- * Tính toán checksum toàn vẹn dữ liệu để phát hiện chuỗi bị cắt cụt hoặc copy thiếu ký tự
- * LƯU Ý KỸ THUẬT:
- * - Đây là Checksum kiểm tra toàn vẹn (Data Integrity Verification / Corruption Detection)
- * - Base64 là kỹ thuật tuần tự hóa / biểu diễn chuỗi văn bản (Serialization Encoding), KHÔNG PHẢI mã hóa bảo mật
- * - Checksum không phải là chữ ký mật mã chống giả mạo (tamper-proofing cryptographic signature)
+ * Tính toán checksum đơn giản để bảo vệ tính toàn vẹn của mã save
  */
-export function calculateSaveChecksum(payload: string): string {
-  let hash = 5381;
-  for (let i = 0; i < payload.length; i++) {
-    hash = ((hash << 5) + hash) + payload.charCodeAt(i);
-    hash = hash & hash; // Ép kiểu 32-bit integer
+export function calculateSaveChecksum(content: string): string {
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    hash = (hash << 5) - hash + content.charCodeAt(i);
+    hash |= 0;
   }
   return Math.abs(hash).toString(16).padStart(8, '0');
 }
 
 /**
- * Lưu vào LocalStorage / Storage (xử lý an toàn khi bộ nhớ đầy QuotaExceededError)
+ * Lưu vào LocalStorage / Storage
  */
 export function saveGameStateToStorage(state: GameSaveData, customStorage?: Storage): boolean {
   try {
@@ -189,6 +200,7 @@ export function saveGameStateToStorage(state: GameSaveData, customStorage?: Stor
 
     const toSave: GameSaveData = {
       ...state,
+      version: CURRENT_SAVE_VERSION,
       lastSavedTimestamp: Date.now(),
     };
     storage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -204,14 +216,17 @@ export function saveGameStateToStorage(state: GameSaveData, customStorage?: Stor
 }
 
 /**
- * Nạp từ LocalStorage / Storage
+ * Nạp từ LocalStorage / Storage (Hỗ trợ fallback v1 sang v2)
  */
 export function loadGameStateFromStorage(customStorage?: Storage): GameSaveData {
   try {
     const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
     if (!storage) return DEFAULT_INITIAL_SAVE;
 
-    const raw = storage.getItem(STORAGE_KEY);
+    let raw = storage.getItem(STORAGE_KEY);
+    if (!raw) {
+      raw = storage.getItem(LEGACY_STORAGE_KEY);
+    }
     if (!raw) return DEFAULT_INITIAL_SAVE;
 
     const parsed = JSON.parse(raw);
@@ -228,26 +243,29 @@ export function loadGameStateFromStorage(customStorage?: Storage): GameSaveData 
 
 /**
  * Xuất file save ra chuỗi văn bản Base64 kèm Checksum toàn vẹn
- * Định dạng: SECH_SAVE_V1_<checksum>_<base64>
+ * Định dạng: SECH_SAVE_V2_<checksum>_<base64>
  */
 export function exportSaveToString(data: GameSaveData): string {
-  const jsonStr = JSON.stringify(data);
+  const jsonStr = JSON.stringify({
+    ...data,
+    version: CURRENT_SAVE_VERSION,
+  });
   const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
   const checksum = calculateSaveChecksum(base64);
-  return `SECH_SAVE_V1_${checksum}_${base64}`;
+  return `SECH_SAVE_V2_${checksum}_${base64}`;
 }
 
 /**
- * Nhập file save từ chuỗi văn bản Base64 (hỗ trợ cả định dạng v1 có checksum và định dạng cũ)
+ * Nhập file save từ chuỗi văn bản Base64 (hỗ trợ cả định dạng V2, V1 có checksum và JSON thuần)
  */
 export function importSaveFromString(rawString: string): { success: boolean; data?: GameSaveData; error?: string } {
   try {
     const trimmed = rawString.trim();
     let jsonStr = trimmed;
 
-    // Định dạng mới v1: SECH_SAVE_V1_<checksum>_<base64>
-    if (trimmed.startsWith('SECH_SAVE_V1_')) {
-      const parts = trimmed.substring('SECH_SAVE_V1_'.length).split('_');
+    if (trimmed.startsWith('SECH_SAVE_V2_') || trimmed.startsWith('SECH_SAVE_V1_')) {
+      const prefix = trimmed.startsWith('SECH_SAVE_V2_') ? 'SECH_SAVE_V2_' : 'SECH_SAVE_V1_';
+      const parts = trimmed.substring(prefix.length).split('_');
       if (parts.length < 2) {
         return { success: false, error: 'Mã lưu game thiếu phần checksum hoặc payload' };
       }
@@ -259,36 +277,44 @@ export function importSaveFromString(rawString: string): { success: boolean; dat
         return { success: false, error: 'Dữ liệu file lưu bị sai lệch hoặc thiếu ký tự (Lỗi Checksum)' };
       }
 
-      jsonStr = decodeURIComponent(escape(atob(base64)));
-    } else if (trimmed.startsWith('SECH_SAVE_')) {
-      // Định dạng cũ tương thích ngược: SECH_SAVE_<base64>
-      const base64 = trimmed.substring('SECH_SAVE_'.length);
-      jsonStr = decodeURIComponent(escape(atob(base64)));
+      try {
+        jsonStr = decodeURIComponent(escape(atob(base64)));
+      } catch {
+        return { success: false, error: 'Không thể giải mã dữ liệu Base64' };
+      }
+    } else {
+      // Thử giải mã Base64 thuần nếu không có tiền tố
+      try {
+        jsonStr = decodeURIComponent(escape(atob(trimmed)));
+      } catch {
+        jsonStr = trimmed;
+      }
     }
 
     const parsed = JSON.parse(jsonStr);
     const validation = validateSaveData(parsed);
 
     if (!validation.valid || !validation.cleanData) {
-      return { success: false, error: validation.error || 'Dữ liệu file lưu không hợp lệ' };
+      return { success: false, error: validation.error || 'Dữ liệu lưu game không hợp lệ' };
     }
 
     return { success: true, data: validation.cleanData };
-  } catch (e) {
-    return { success: false, error: 'Chuỗi dữ liệu bị hỏng hoặc sai định dạng Base64/JSON' };
+  } catch (e: any) {
+    return { success: false, error: 'Định dạng file lưu không đúng hoặc bị hỏng' };
   }
 }
 
 /**
- * Xóa trắng dữ liệu game (Reset)
+ * Xóa dữ liệu lưu game khỏi Storage (xóa cả v2 và v1)
  */
 export function clearSavedGame(customStorage?: Storage): void {
   try {
     const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
-    if (storage) {
-      storage.removeItem(STORAGE_KEY);
-    }
+    if (!storage) return;
+    storage.removeItem(STORAGE_KEY);
+    storage.removeItem(LEGACY_STORAGE_KEY);
   } catch (e) {
-    console.error('Lỗi khi reset game:', e);
+    console.error('Lỗi khi xóa dữ liệu lưu game:', e);
   }
 }
+

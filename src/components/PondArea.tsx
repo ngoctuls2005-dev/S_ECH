@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useGameStore, FloatingTextItem } from '../store/gameStore';
 import { calculateActiveFrogBuffs, getFrogSpeciesById, RARITY_CONFIG } from '../engine/frogs';
 import { formatNumber, calculateClickPower, calculateCritStats } from '../engine/clicker';
-import { Sparkles, Flame, Eye } from 'lucide-react';
+import { soundManager } from '../engine/audio';
+import { Sparkles, Flame, Eye, Zap } from 'lucide-react';
 
 interface ClickRipple {
   id: string;
@@ -15,6 +16,7 @@ export const PondArea: React.FC = () => {
   const ownedFrogs = useGameStore((s) => s.ownedFrogs);
   const upgradeLevels = useGameStore((s) => s.upgradeLevels);
   const currentCombo = useGameStore((s) => s.currentCombo);
+  const settings = useGameStore((s) => s.settings);
   const floatingTexts = useGameStore((s) => s.floatingTexts);
   const clickFrog = useGameStore((s) => s.clickFrog);
   const removeFloatingText = useGameStore((s) => s.removeFloatingText);
@@ -22,12 +24,17 @@ export const PondArea: React.FC = () => {
 
   const [isSquished, setIsSquished] = useState(false);
   const [ripples, setRipples] = useState<ClickRipple[]>([]);
+  const [comboBanner, setComboBanner] = useState<{ text: string; color: string; level: number } | null>(null);
+
   const pondRef = useRef<HTMLDivElement>(null);
   const squishTimerRef = useRef<number | null>(null);
+  const comboBannerTimerRef = useRef<number | null>(null);
   const rippleTimersRef = useRef<Map<string, number>>(new Map());
+  const lastMilestoneRef = useRef<number>(0);
 
   useEffect(() => () => {
     if (squishTimerRef.current !== null) window.clearTimeout(squishTimerRef.current);
+    if (comboBannerTimerRef.current !== null) window.clearTimeout(comboBannerTimerRef.current);
     rippleTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     rippleTimersRef.current.clear();
   }, []);
@@ -40,10 +47,46 @@ export const PondArea: React.FC = () => {
   const clickPower = calculateClickPower(1, upgradeLevels, activeBuffs);
   const { critChance, critMultiplier } = calculateCritStats(upgradeLevels, activeBuffs);
 
+  // Theo dõi Combo Milestones
+  useEffect(() => {
+    if (currentCombo === 0) {
+      lastMilestoneRef.current = 0;
+      return;
+    }
+
+    const milestones: (5 | 10 | 20 | 50)[] = [50, 20, 10, 5];
+    for (const m of milestones) {
+      if (currentCombo >= m && lastMilestoneRef.current < m) {
+        lastMilestoneRef.current = m;
+        soundManager.playComboMilestone(m);
+
+        let text = `COMBO x${m}!`;
+        let color = 'from-amber-400 to-yellow-300';
+        if (m === 50) {
+          text = '🔥 BÃO TỐ SỜ ẾCH x50! 🔥';
+          color = 'from-rose-500 via-amber-400 to-yellow-200';
+        } else if (m === 20) {
+          text = '⚡ SIÊU COMBO x20! ⚡';
+          color = 'from-purple-400 to-pink-300';
+        } else if (m === 10) {
+          text = '✨ NHỊP ĐỘ SỜ x10! ✨';
+          color = 'from-emerald-400 to-cyan-300';
+        }
+
+        setComboBanner({ text, color, level: m });
+        if (comboBannerTimerRef.current !== null) window.clearTimeout(comboBannerTimerRef.current);
+        comboBannerTimerRef.current = window.setTimeout(() => {
+          setComboBanner(null);
+          comboBannerTimerRef.current = null;
+        }, 1200);
+        break;
+      }
+    }
+  }, [currentCombo]);
+
   // Xử lý click sờ ếch
   const handleFrogTouch = (e: React.MouseEvent<HTMLButtonElement>) => {
     const frogRect = e.currentTarget.getBoundingClientRect();
-    // Keyboard activation reports (0, 0); center its reward and ripple on the frog.
     const hasPointerPosition = e.clientX !== 0 || e.clientY !== 0;
     const clientX = hasPointerPosition ? e.clientX : frogRect.left + frogRect.width / 2;
     const clientY = hasPointerPosition ? e.clientY : frogRect.top + frogRect.height / 2;
@@ -54,7 +97,7 @@ export const PondArea: React.FC = () => {
     squishTimerRef.current = window.setTimeout(() => {
       setIsSquished(false);
       squishTimerRef.current = null;
-    }, 140);
+    }, 130);
 
     // Thêm ripple
     const pondRect = pondRef.current?.getBoundingClientRect();
@@ -78,20 +121,26 @@ export const PondArea: React.FC = () => {
       ref={pondRef}
       className="relative w-full flex-1 flex flex-col items-center justify-between gap-3 p-3 sm:p-5 overflow-hidden select-none min-h-[440px]"
     >
-      {/* Background Pond Elements (Lá sen trôi & bóng nước) */}
+      {/* Background Pond Elements */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Ánh sáng hồ nước lung linh */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-pond-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-        
-        {/* Đốm sáng đom đóm bay lơ lửng */}
         <div className="absolute top-16 left-12 w-2 h-2 rounded-full bg-emerald-300 shadow-[0_0_12px_#86efac] animate-ping" />
         <div className="absolute top-36 right-20 w-2.5 h-2.5 rounded-full bg-cream shadow-[0_0_15px_#fde68a] animate-bounce" />
         <div className="absolute bottom-24 left-24 w-2 h-2 rounded-full bg-teal-300 shadow-[0_0_10px_#2dd4bf] animate-pulse" />
 
-        {/* Lá sen trang trí mờ ảo ở các góc */}
         <div className="absolute -bottom-16 -left-16 w-52 h-52 rounded-full bg-gradient-to-tr from-pond-900/60 to-emerald-800/30 border border-pond-600/20 backdrop-blur-[2px] opacity-70" />
         <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-gradient-to-bl from-pond-900/60 to-emerald-800/30 border border-pond-600/20 backdrop-blur-[2px] opacity-60" />
       </div>
+
+      {/* Combo Milestone Burst Banner */}
+      {comboBanner && (
+        <div className="absolute top-20 z-40 animate-scale-up pointer-events-none">
+          <div className={`px-5 py-2 rounded-2xl bg-gradient-to-r ${comboBanner.color} text-slate-950 font-black text-sm sm:text-base tracking-wider uppercase shadow-[0_0_25px_rgba(255,215,0,0.6)] flex items-center gap-2 border border-white/60`}>
+            <Zap className="w-5 h-5 fill-slate-950 animate-bounce" />
+            <span>{comboBanner.text}</span>
+          </div>
+        </div>
+      )}
 
       {/* Ripples khi chạm vào hồ */}
       {ripples.map((ripple) => (
@@ -138,7 +187,7 @@ export const PondArea: React.FC = () => {
         </div>
         <button
           onClick={() => setActiveTab('collection')}
-          className="ml-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1 transition-all"
+          className="ml-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1 transition-all active:scale-95"
           title="Đổi ếch chính"
         >
           <Eye className="w-3.5 h-3.5" />
@@ -148,8 +197,8 @@ export const PondArea: React.FC = () => {
 
       {/* CENTER: The Big Frog on Giant Lilypad */}
       <div className="relative z-10 flex-1 w-full flex flex-col items-center justify-center min-h-[310px] sm:min-h-[390px] my-1 sm:my-3 group">
-        {/* Lá Sen Khổng Lồ (Giant Lilypad) */}
         <div className="relative flex h-[280px] w-full max-w-[620px] items-center justify-center sm:h-[360px]">
+          {/* Lá Sen Khổng Lồ (Giant Lilypad) */}
           <div className="absolute bottom-[14%] h-[38%] w-[78%] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_#1d966c_0%,_#126148_58%,_#0a3e39_100%)] border border-emerald-300/40 shadow-[0_20px_45px_rgba(2,20,24,0.7),inset_0_3px_12px_rgba(167,243,208,0.22)] transition-transform duration-500 group-hover:scale-[1.03]">
             <div className="absolute inset-[5%] rounded-[50%] border border-emerald-100/20" />
             <div className="absolute inset-x-[13%] top-[16%] h-[28%] rounded-[50%] bg-gradient-to-b from-emerald-100/15 to-transparent blur-sm" />
@@ -184,7 +233,9 @@ export const PondArea: React.FC = () => {
               src={species.image}
               alt={species.nameVi}
               draggable={false}
-              className="motion-safe:animate-frog-idle h-[min(72vw,21rem)] w-[min(72vw,21rem)] sm:h-[min(58vw,27rem)] sm:w-[min(58vw,27rem)] object-contain drop-shadow-[0_18px_24px_rgba(0,0,0,0.68)] pointer-events-none"
+              className={`h-[min(72vw,21rem)] w-[min(72vw,21rem)] sm:h-[min(58vw,27rem)] sm:w-[min(58vw,27rem)] object-contain drop-shadow-[0_18px_24px_rgba(0,0,0,0.68)] pointer-events-none transition-transform ${
+                settings.reducedMotion ? '' : 'motion-safe:animate-frog-idle'
+              }`}
             />
           </button>
         </div>

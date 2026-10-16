@@ -8,8 +8,8 @@ import {
 } from '../upgrade';
 
 describe('Upgrade System', () => {
-  it('defines exactly 8 standard upgrades with correct initial base prices', () => {
-    expect(UPGRADES_CONFIG.length).toBe(8);
+  it('defines exactly 18 upgrades with correct initial base prices and categories', () => {
+    expect(UPGRADES_CONFIG.length).toBe(18);
 
     const priceMap: Record<string, number> = {
       divine_finger: 50,
@@ -20,11 +20,22 @@ describe('Upgrade System', () => {
       frog_combo: 5000,
       frog_factory: 15000,
       frog_magic: 50000,
+      platinum_hand: 80000,
+      conveyor_touch: 150000,
+      precise_touch: 300000,
+      legendary_handprint: 750000,
+      robot_touch: 1000000,
+      crit_mastery: 2000000,
+      frog_ranch: 6000000,
+      cosmic_hand: 12000000,
+      frog_corporation: 40000000,
+      frog_sanctuary: 250000000,
     };
 
     for (const item of UPGRADES_CONFIG) {
       expect(priceMap[item.id]).toBeDefined();
       expect(item.basePrice).toBe(priceMap[item.id]);
+      expect(item.category).toBeDefined();
     }
   });
 
@@ -117,6 +128,21 @@ describe('Upgrade System', () => {
       expect(res.success).toBe(true);
       expect(res.cost).toBe(40);
       expect(res.newPoints).toBe(60);
+    });
+
+    it('successfully purchases newly added v2.0 upgrades (e.g. platinum_hand, frog_sanctuary)', () => {
+      // Platinum hand (base 80,000)
+      const resPlat = purchaseUpgrade('platinum_hand', 'x1', 100000, {});
+      expect(resPlat.success).toBe(true);
+      expect(resPlat.cost).toBe(80000);
+      expect(resPlat.newPoints).toBe(20000);
+      expect(resPlat.newLevels['platinum_hand']).toBe(1);
+
+      // Frog sanctuary (base 250,000,000)
+      const resSanc = purchaseUpgrade('frog_sanctuary', 'x1', 300000000, {});
+      expect(resSanc.success).toBe(true);
+      expect(resSanc.cost).toBe(250000000);
+      expect(resSanc.newLevels['frog_sanctuary']).toBe(1);
     });
   });
 });

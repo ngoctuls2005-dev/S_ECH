@@ -40,7 +40,14 @@ describe('Web Audio SFX Engine', () => {
     expect(() => manager.playEggCrack()).not.toThrow();
     expect(() => manager.playGachaReveal('mythic')).not.toThrow();
     expect(() => manager.playAchievement()).not.toThrow();
+    expect(() => manager.playComboMilestone(5)).not.toThrow();
+    expect(() => manager.playComboMilestone(10)).not.toThrow();
+    expect(() => manager.playComboMilestone(20)).not.toThrow();
+    expect(() => manager.playComboMilestone(50)).not.toThrow();
+    expect(() => manager.playFrogGreeting('legendary')).not.toThrow();
+    expect(() => manager.playFrogGreeting('mythic')).not.toThrow();
   });
+
 
   it('skips audio generation cleanly when sound is disabled', () => {
     manager.setSoundEnabled(false);

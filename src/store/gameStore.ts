@@ -26,7 +26,11 @@ import {
   GachaSessionResult,
   INITIAL_PITY_STATE,
   executeGacha,
+  GachaPoolType,
+  GachaHistoryEntry,
+  appendGachaHistory,
 } from '../engine/gacha';
+
 import {
   GameSaveData,
   DEFAULT_INITIAL_SAVE,
@@ -64,6 +68,7 @@ export interface GameStoreState {
   pity: GachaPityState;
   unlockedAchievements: string[];
   settings: GameSettings;
+  gachaHistory: GachaHistoryEntry[];
 
   // Runtime UI State
   activeTab: ActiveTab;
@@ -79,7 +84,8 @@ export interface GameStoreState {
   tick: (deltaSeconds: number) => void;
   handleVisibilityChange: (isVisible: boolean, nowTimestamp?: number) => void;
   buyUpgrade: (id: string, mode: 'x1' | 'x10' | 'max') => boolean;
-  pullGacha: (count: 1 | 10) => GachaSessionResult | null;
+  pullGacha: (count: 1 | 10, poolType?: GachaPoolType) => GachaSessionResult | null;
+
   setMainFrog: (id: string) => void;
   levelUpFrog: (id: string) => boolean;
   dismissOfflineReward: () => void;
@@ -113,8 +119,17 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     pity: initialLoaded.pity || INITIAL_PITY_STATE,
     unlockedAchievements: initialLoaded.unlockedAchievements || [],
     settings: initialLoaded.settings || DEFAULT_INITIAL_SAVE.settings,
+    gachaHistory: (() => {
+      try {
+        const stored = localStorage.getItem('s_ech_gacha_history');
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    })(),
 
     activeTab: 'pond',
+
     floatingTexts: [],
     offlineReward: null,
     newAchievementUnlocked: null,
@@ -178,19 +193,26 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           ownedFrogs: state.ownedFrogs,
           upgrades: state.upgradeLevels,
           highestCombo,
+          mainFrogId: state.mainFrogId,
         },
         state.unlockedAchievements
       );
 
+      let finalPoints = newPoints;
+      let finalTotalPoints = newTotalPointsEarned;
       let newlyUnlockedToast = state.newAchievementUnlocked;
       if (evalRes.newlyUnlockedIds.length > 0) {
         soundManager.playAchievement();
         newlyUnlockedToast = evalRes.newlyUnlockedIds[0];
+        if (evalRes.totalRewardsEarned > 0) {
+          finalPoints += evalRes.totalRewardsEarned;
+          finalTotalPoints += evalRes.totalRewardsEarned;
+        }
       }
 
       set({
-        points: newPoints,
-        totalPointsEarned: newTotalPointsEarned,
+        points: finalPoints,
+        totalPointsEarned: finalTotalPoints,
         totalClicks: newTotalClicks,
         currentCombo: newCombo,
         highestCombo,
@@ -315,19 +337,26 @@ export const useGameStore = create<GameStoreState>((set, get) => {
             upgrades: state.upgradeLevels,
             highestCombo: state.highestCombo,
             pointsPerSecond: pps,
+            mainFrogId: state.mainFrogId,
           },
           state.unlockedAchievements
         );
 
+        let finalPoints = newPoints;
+        let finalTotalPoints = newTotalPointsEarned;
         let newlyUnlockedToast = state.newAchievementUnlocked;
         if (evalRes.newlyUnlockedIds.length > 0) {
           soundManager.playAchievement();
           newlyUnlockedToast = evalRes.newlyUnlockedIds[0];
+          if (evalRes.totalRewardsEarned > 0) {
+            finalPoints += evalRes.totalRewardsEarned;
+            finalTotalPoints += evalRes.totalRewardsEarned;
+          }
         }
 
         set({
-          points: newPoints,
-          totalPointsEarned: newTotalPointsEarned,
+          points: finalPoints,
+          totalPointsEarned: finalTotalPoints,
           currentCombo: updatedCombo,
           idleAccumulator: newAccumulator,
           lastActiveTimestamp: Date.now(),
@@ -363,27 +392,48 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           ownedFrogs: state.ownedFrogs,
           upgrades: result.newLevels,
           highestCombo: state.highestCombo,
+          mainFrogId: state.mainFrogId,
         },
         state.unlockedAchievements
       );
 
+      let finalPoints = result.newPoints;
+      let finalTotalPoints = state.totalPointsEarned;
+      let newlyUnlockedToast = state.newAchievementUnlocked;
+      if (evalRes.newlyUnlockedIds.length > 0) {
+        soundManager.playAchievement();
+        newlyUnlockedToast = evalRes.newlyUnlockedIds[0];
+        if (evalRes.totalRewardsEarned > 0) {
+          finalPoints += evalRes.totalRewardsEarned;
+          finalTotalPoints += evalRes.totalRewardsEarned;
+        }
+      }
+
       set({
-        points: result.newPoints,
+        points: finalPoints,
+        totalPointsEarned: finalTotalPoints,
         upgradeLevels: result.newLevels,
         unlockedAchievements: evalRes.achievements.filter((a) => a.isUnlocked).map((a) => a.id),
+        newAchievementUnlocked: newlyUnlockedToast,
       });
 
       return true;
     },
 
-    pullGacha: (count) => {
+    pullGacha: (count, poolType = 'ao_sen') => {
       const state = get();
-      const res = executeGacha(count, state.points, state.ownedFrogs, state.pity);
+      const res = executeGacha(count, state.points, state.ownedFrogs, state.pity, poolType);
       if (!res.success || !res.session) {
         return null;
       }
 
       const session = res.session;
+      const updatedHistory = appendGachaHistory(state.gachaHistory || [], session.newHistoryEntries);
+      try {
+        localStorage.setItem('s_ech_gacha_history', JSON.stringify(updatedHistory));
+      } catch {
+        // Ignore local storage error
+      }
 
       // Đánh giá thành tựu gacha & collection
       const evalRes = evaluateAchievements(
@@ -394,26 +444,37 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           ownedFrogs: session.newOwnedFrogs,
           upgrades: state.upgradeLevels,
           highestCombo: state.highestCombo,
+          mainFrogId: state.mainFrogId,
         },
         state.unlockedAchievements
       );
 
+      let finalPoints = session.newPoints;
+      let finalTotalPoints = state.totalPointsEarned;
       let newlyUnlockedToast = state.newAchievementUnlocked;
       if (evalRes.newlyUnlockedIds.length > 0) {
         soundManager.playAchievement();
         newlyUnlockedToast = evalRes.newlyUnlockedIds[0];
+        if (evalRes.totalRewardsEarned > 0) {
+          finalPoints += evalRes.totalRewardsEarned;
+          finalTotalPoints += evalRes.totalRewardsEarned;
+        }
       }
 
       set({
-        points: session.newPoints,
+        points: finalPoints,
+        totalPointsEarned: finalTotalPoints,
         ownedFrogs: session.newOwnedFrogs,
         pity: session.newPity,
+        gachaHistory: updatedHistory,
         unlockedAchievements: evalRes.achievements.filter((a) => a.isUnlocked).map((a) => a.id),
         newAchievementUnlocked: newlyUnlockedToast,
       });
 
+
       return session;
     },
+
 
     setMainFrog: (id) => {
       const state = get();
