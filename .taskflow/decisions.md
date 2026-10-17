@@ -360,3 +360,38 @@
 ### [R09] VERIFIED (2026-10-17T09:44:26Z)
 - **Test tự động:** 1 lệnh PASS
 
+### [C01] Ghi chú quyết định (2026-10-17T15:39:25Z)
+- **Vì sao (Why):** Kiem tra boolean tra ve cua saveGameStateToStorage truoc khi cap nhat RAM/audio de bao ve state cu khi storage that bai
+- **Thay đổi & Tác động (Change):** Them kiem tra if (!saved) return error trong importSave va bo sung import_storage_failure.test.ts
+
+### [C01] VERIFIED (2026-10-17T15:39:30Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [C02] Ghi chú quyết định (2026-10-17T15:42:20Z)
+- **Vì sao (Why):** Bao ve du lieu V2 hong truoc khi ghi de V1: luu quarantine vao s_ech_game_save_v2_corrupted_backup, kiem tra thanh cong moi ghi de, chan ghi de neu backup quota error
+- **Thay đổi & Tác động (Change):** Cap nhat loadGameStateFromStorage va clearSavedGame trong save.ts kem 7 tests trong safe_recovery.test.ts dat 100% pass
+
+### [C02] VERIFIED (2026-10-17T15:42:26Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [C03] Ghi chú quyết định (2026-10-17T15:47:19Z)
+- **Vì sao (Why):** Khai bao trần cấp MAX_FROG_LEVEL = 22 trong frogs.ts tuong thich fragment cap 10M, dong thoi giu MAX_SAVED_FROG_LEVEL = 50 trong save.ts de khong ha cap save hop le
+- **Thay đổi & Tác động (Change):** Cap nhat frogs.ts, save.ts, CollectionModal.tsx kem 5 tests trong frog_progression_consistency.test.ts dat 100% pass
+
+### [C03] VERIFIED (2026-10-17T15:47:23Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [C04] Ghi chú quyết định (2026-10-17T15:51:52Z)
+- **Vì sao (Why):** Kiem chung toan trinh gameplay thuc te tren trinh duyet bang browser_subagent: Click ech, mo Nang cap, mo Bo suu tap, kiem tra console 0 error va ghi video WebP
+- **Thay đổi & Tác động (Change):** Chay browser_subagent tren Vite dev server xuat video browser_e2e_check_1792252170326.webp kem 185 tests unit/integration pass
+
+### [C04] VERIFIED (2026-10-17T15:52:08Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [C05] Ghi chú quyết định (2026-10-17T16:00:15Z)
+- **Vì sao (Why):** Codex doc lap review diff va chi ra 2 loi P1 ve quarantine va autosave leak. Antigravity tiep thu va sua triet de.
+- **Thay đổi & Tác động (Change):** Sua save.ts kiem tra chuoi backup khop chinh xac va khoa autosave khi quarantine that bai; sua CollectionModal.tsx hien thi cap 22; xuat ban CODEX_COLLABORATION_LOG.md va V3_CODEX_COLLABORATIVE_REVIEW.md
+
+### [C05] VERIFIED (2026-10-17T16:01:15Z)
+- **Test tự động:** 1 lệnh PASS
+

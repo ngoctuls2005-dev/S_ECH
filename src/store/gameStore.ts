@@ -663,7 +663,14 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       }
 
       const d = res.data;
-      saveGameStateToStorage(d);
+      const saved = saveGameStateToStorage(d);
+      if (!saved) {
+        return {
+          success: false,
+          message: 'Không thể lưu bản nhập vào bộ nhớ trình duyệt. Tiến trình hiện tại chưa thay đổi; hãy giải phóng dung lượng hoặc bật quyền lưu rồi thử lại.',
+        };
+      }
+
       soundManager.setSoundEnabled(d.settings.soundEnabled);
       soundManager.setVolume(d.settings.volume);
       soundManager.setMusicEnabled(d.settings.musicEnabled);

@@ -61,9 +61,16 @@ export const RARITY_CONFIG: Record<
 };
 
 /**
+ * Giới hạn cấp độ tối đa của loài ếch trong gameplay
+ * (Ở cấp 21 lên 22 cần 5.242.880 mảnh; cấp 22 lên 23 cần > 10.000.000 mảnh vượt trần lưu)
+ */
+export const MAX_FROG_LEVEL = 22;
+
+/**
  * Số mảnh cần thiết để nâng cấp lên cấp tiếp theo
  */
 export function getRequiredFragmentsForLevel(currentLevel: number): number {
+  if (currentLevel >= MAX_FROG_LEVEL) return Infinity;
   return 5 * Math.pow(2, currentLevel - 1);
 }
 
@@ -80,6 +87,7 @@ export function calculateFrogBuffValue(baseValue: number, level: number): number
  * Kiểm tra xem ếch có đủ mảnh để thăng cấp không
  */
 export function canLevelUpFrog(frogOwned: FrogOwned): boolean {
+  if (frogOwned.level >= MAX_FROG_LEVEL) return false;
   const req = getRequiredFragmentsForLevel(frogOwned.level);
   return frogOwned.fragments >= req;
 }
@@ -88,6 +96,10 @@ export function canLevelUpFrog(frogOwned: FrogOwned): boolean {
  * Thăng cấp ếch bằng mảnh
  */
 export function levelUpFrog(frogOwned: FrogOwned): { success: boolean; newFrog: FrogOwned } {
+  if (frogOwned.level >= MAX_FROG_LEVEL) {
+    return { success: false, newFrog: frogOwned };
+  }
+
   const req = getRequiredFragmentsForLevel(frogOwned.level);
   if (frogOwned.fragments < req) {
     return { success: false, newFrog: frogOwned };

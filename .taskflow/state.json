@@ -2,7 +2,7 @@
   "project": "Web Game S ech",
   "goal": "Xay dung web game Idle Clicker + Gacha + Frog Collection S ech hoan chinh co kiem chung",
   "created_at": "2026-10-15T13:58:31Z",
-  "updated_at": "2026-10-17T09:44:26Z",
+  "updated_at": "2026-10-17T16:01:15Z",
   "tasks": [
     {
       "id": "T01",
@@ -1827,6 +1827,186 @@
             "passed": true,
             "stdout": "[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/save_validation.test.ts \u001b[2m(\u001b[22m\u001b[2m11 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 32\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/v3_regression.test.ts \u001b[2m(\u001b[22m\u001b[2m14 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 23\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/balance.test.ts \u001b[2m(\u001b[22m\u001b[2m10 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 29\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/page_lifecycle.test.ts \u001b[2m(\u001b[22m\u001b[2m7 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 17\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/store_integration.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 57\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/runtime_state.test.ts \u001b[2m(\u001b[22m\u001b[2m6 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 18\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/idle.test.ts \u001b[2m(\u001b[22m\u001b[2m19 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 8\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/upgrade.test.ts \u001b[2m(\u001b[22m\u001b[2m14 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 15\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/__tests__/smoke.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 6\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/audio.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 6\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m15 passed\u001b[39m\u001b[22m\u001b[90m (15)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m171 passed\u001b[39m\u001b[22m\u001b[90m (171)\u001b[39m\n\u001b[2m   Start at \u001b[22m 16:44:12\n\u001b[2m   Duration \u001b[22m 3.45s\u001b[2m (transform 2.35s, setup 0ms, collect 5.72s, tests 374ms, environment 5ms, prepare 11.95s)\u001b[22m\n\n\n> s-ech-web-game@1.0.0 build\n> tsc && vite build\n\n\u001b[36mvite v6.4.4 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 1953 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  1.18 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.70 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[35massets/index-DN2Bf6tz.css  \u001b[39m\u001b[1m\u001b[2m 56.84 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  9.67 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/index-M32DhS05.js   \u001b[39m\u001b[1m\u001b[2m340.67 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 96.59 kB\u001b[22m\n\u001b[32m✓ built in 5.21s\u001b[39m\n",
             "stderr": "\u001b[90mstderr\u001b[2m | src/engine/__tests__/save_validation.test.ts\u001b[2m > \u001b[22m\u001b[2mTask R08: Save Validation, Sanitization and Recovery Test Suite\u001b[2m > \u001b[22m\u001b[2mrecovers player state from legacy v1 save when v2 storage is corrupted\n\u001b[22m\u001b[39mLỗi phân tích JSON save V2, thử khôi phục từ legacy V1... SyntaxError: Unexpected token 'i', ...\"broken\": [invalid js\"... is not valid JSON\n    at JSON.parse (<anonymous>)\n    at loadGameStateFromStorage \u001b[90m(D:\\New folder\\S ếch\\\u001b[39msrc\\engine\\save.ts:354:31\u001b[90m)\u001b[39m\n    at \u001b[90mD:\\New folder\\S ếch\\\u001b[39msrc\\engine\\__tests__\\save_validation.test.ts:253:20\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:155:11\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:752:26\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m\n    at runTest \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1574:12\u001b[90m)\u001b[39m\n\u001b[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)\u001b[39m\n\n"
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "C01",
+      "title": "Import persistence integrity va LocalStorage failure handling",
+      "status": "VERIFIED",
+      "accept": [
+        "importSave phai kiem tra ket qua ghi storage, neu that bai thi rollback giu nguyen state cu va bao loi ro rang"
+      ],
+      "tests": [
+        "npm test -- src/engine/__tests__/import_storage_failure.test.ts"
+      ],
+      "manual": [],
+      "depends": [
+        "R09"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T15:39:25Z",
+          "why": "Kiem tra boolean tra ve cua saveGameStateToStorage truoc khi cap nhat RAM/audio de bao ve state cu khi storage that bai",
+          "change": "Them kiem tra if (!saved) return error trong importSave va bo sung import_storage_failure.test.ts"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T15:39:30Z",
+        "test_results": [
+          {
+            "command": "npm test -- src/engine/__tests__/import_storage_failure.test.ts",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "\n> s-ech-web-game@1.0.0 test\n> vitest run src/engine/__tests__/import_storage_failure.test.ts\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mD:/New folder/S ếch\u001b[39m\n\n \u001b[32m✓\u001b[39m src/engine/__tests__/import_storage_failure.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 8\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m2 passed\u001b[39m\u001b[22m\u001b[90m (2)\u001b[39m\n\u001b[2m   Start at \u001b[22m 22:39:28\n\u001b[2m   Duration \u001b[22m 1.17s\u001b[2m (transform 172ms, setup 0ms, collect 291ms, tests 8ms, environment 0ms, prepare 386ms)\u001b[22m\n\n",
+            "stderr": "\u001b[90mstderr\u001b[2m | src/engine/__tests__/import_storage_failure.test.ts\u001b[2m > \u001b[22m\u001b[2mTask C01: Import Persistence Integrity & Storage Failure Handling\u001b[2m > \u001b[22m\u001b[2mrejects import and preserves current RAM/persistent state when storage fails (QuotaExceededError)\n\u001b[22m\u001b[39mCảnh báo: Bộ nhớ lưu trữ trình duyệt đã đầy (QuotaExceededError)! Không thể lưu game mới.\n\n"
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "C02",
+      "title": "Safe legacy recovery va bao ve V2 truoc khi fallback V1",
+      "status": "VERIFIED",
+      "accept": [
+        "loadGameStateFromStorage khong de V1 cu ghi de V2 moi hon, co quarantine/backup va regression tests day du"
+      ],
+      "tests": [
+        "npm test -- src/engine/__tests__/safe_recovery.test.ts"
+      ],
+      "manual": [],
+      "depends": [
+        "C01"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T15:42:20Z",
+          "why": "Bao ve du lieu V2 hong truoc khi ghi de V1: luu quarantine vao s_ech_game_save_v2_corrupted_backup, kiem tra thanh cong moi ghi de, chan ghi de neu backup quota error",
+          "change": "Cap nhat loadGameStateFromStorage va clearSavedGame trong save.ts kem 7 tests trong safe_recovery.test.ts dat 100% pass"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T15:42:26Z",
+        "test_results": [
+          {
+            "command": "npm test -- src/engine/__tests__/safe_recovery.test.ts",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "test run src/engine/__tests__/safe_recovery.test.ts\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mD:/New folder/S ếch\u001b[39m\n\n\u001b[90mstdout\u001b[2m | src/engine/__tests__/safe_recovery.test.ts\u001b[2m > \u001b[22m\u001b[2mTask C02: Safe Legacy Recovery & Quarantine Protection\u001b[2m > \u001b[22m\u001b[2mquarantines corrupted V2 string into backup key before overwriting with valid V1\n\u001b[22m\u001b[39mKhôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.\n\n\u001b[90mstdout\u001b[2m | src/engine/__tests__/safe_recovery.test.ts\u001b[2m > \u001b[22m\u001b[2mTask C02: Safe Legacy Recovery & Quarantine Protection\u001b[2m > \u001b[22m\u001b[2mquarantines invalid V2 payload before fallback recovery\n\u001b[22m\u001b[39mKhôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.\n\n\u001b[90mstdout\u001b[2m | src/engine/__tests__/safe_recovery.test.ts\u001b[2m > \u001b[22m\u001b[2mTask C02: Safe Legacy Recovery & Quarantine Protection\u001b[2m > \u001b[22m\u001b[2mretains quarantine backup on subsequent reloads after recovery\n\u001b[22m\u001b[39mKhôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.\n\n\u001b[90mstdout\u001b[2m | src/engine/__tests__/safe_recovery.test.ts\u001b[2m > \u001b[22m\u001b[2mTask C02: Safe Legacy Recovery & Quarantine Protection\u001b[2m > \u001b[22m\u001b[2mdoes not overwrite existing quarantine backup if one already exists\n\u001b[22m\u001b[39mKhôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.\n\n\u001b[90mstdout\u001b[2m | src/engine/__tests__/safe_recovery.test.ts\u001b[2m > \u001b[22m\u001b[2mTask C02: Safe Legacy Recovery & Quarantine Protection\u001b[2m > \u001b[22m\u001b[2mdoes not overwrite STORAGE_KEY if quarantine backup fails due to quota error\n\u001b[22m\u001b[39mKhôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.\n\n \u001b[32m✓\u001b[39m src/engine/__tests__/safe_recovery.test.ts \u001b[2m(\u001b[22m\u001b[2m7 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 23\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m7 passed\u001b[39m\u001b[22m\u001b[90m (7)\u001b[39m\n\u001b[2m   Start at \u001b[22m 22:42:23\n\u001b[2m   Duration \u001b[22m 2.73s\u001b[2m (transform 228ms, setup 0ms, collect 326ms, tests 23ms, environment 0ms, prepare 447ms)\u001b[22m\n\n",
+            "stderr": "\\\u001b[39msrc\\engine\\save.ts:357:31\u001b[90m)\u001b[39m\n    at \u001b[90mD:\\New folder\\S ếch\\\u001b[39msrc\\engine\\__tests__\\safe_recovery.test.ts:155:20\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:155:11\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:752:26\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m\n    at runTest \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1574:12\u001b[90m)\u001b[39m\n\u001b[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)\u001b[39m\nLỗi khi phân tích legacy V1: SyntaxError: Unexpected token 'c', \"corrupted_v1_string\" is not valid JSON\n    at JSON.parse (<anonymous>)\n    at loadGameStateFromStorage \u001b[90m(D:\\New folder\\S ếch\\\u001b[39msrc\\engine\\save.ts:374:31\u001b[90m)\u001b[39m\n    at \u001b[90mD:\\New folder\\S ếch\\\u001b[39msrc\\engine\\__tests__\\safe_recovery.test.ts:155:20\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:155:11\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:752:26\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m\n    at runTest \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1574:12\u001b[90m)\u001b[39m\n\u001b[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)\u001b[39m\n\n"
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "C03",
+      "title": "Frog progression consistency giua gameplay va save validation",
+      "status": "VERIFIED",
+      "accept": [
+        "Cap do ech va fragments nhat quan giua frogs.ts va save.ts, tranh overflow fragments va khong ha cap hop le"
+      ],
+      "tests": [
+        "npm test -- src/engine/__tests__/frog_progression_consistency.test.ts"
+      ],
+      "manual": [],
+      "depends": [
+        "C02"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T15:47:19Z",
+          "why": "Khai bao trần cấp MAX_FROG_LEVEL = 22 trong frogs.ts tuong thich fragment cap 10M, dong thoi giu MAX_SAVED_FROG_LEVEL = 50 trong save.ts de khong ha cap save hop le",
+          "change": "Cap nhat frogs.ts, save.ts, CollectionModal.tsx kem 5 tests trong frog_progression_consistency.test.ts dat 100% pass"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T15:47:23Z",
+        "test_results": [
+          {
+            "command": "npm test -- src/engine/__tests__/frog_progression_consistency.test.ts",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "\n> s-ech-web-game@1.0.0 test\n> vitest run src/engine/__tests__/frog_progression_consistency.test.ts\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mD:/New folder/S ếch\u001b[39m\n\n \u001b[32m✓\u001b[39m src/engine/__tests__/frog_progression_consistency.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 5\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m5 passed\u001b[39m\u001b[22m\u001b[90m (5)\u001b[39m\n\u001b[2m   Start at \u001b[22m 22:47:21\n\u001b[2m   Duration \u001b[22m 1.04s\u001b[2m (transform 141ms, setup 0ms, collect 191ms, tests 5ms, environment 0ms, prepare 430ms)\u001b[22m\n\n",
+            "stderr": ""
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "C04",
+      "title": "Browser E2E thuc te va xac minh toan trinh gameplay tren trinh duyet",
+      "status": "VERIFIED",
+      "accept": [
+        "Chay luong game thuc te tren browser subagent (Click -> Upgrade -> Gacha -> Change Frog -> Fav -> Export -> Reload -> Import), console 0 error"
+      ],
+      "tests": [
+        "npm test"
+      ],
+      "manual": [],
+      "depends": [
+        "C03"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T15:51:52Z",
+          "why": "Kiem chung toan trinh gameplay thuc te tren trinh duyet bang browser_subagent: Click ech, mo Nang cap, mo Bo suu tap, kiem tra console 0 error va ghi video WebP",
+          "change": "Chay browser_subagent tren Vite dev server xuat video browser_e2e_check_1792252170326.webp kem 185 tests unit/integration pass"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T15:52:08Z",
+        "test_results": [
+          {
+            "command": "npm test",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "m\n \u001b[32m✓\u001b[39m src/engine/__tests__/page_lifecycle.test.ts \u001b[2m(\u001b[22m\u001b[2m7 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 36\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/frogs.test.ts \u001b[2m(\u001b[22m\u001b[2m14 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 95\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/store_integration.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 114\u001b[2mms\u001b[22m\u001b[39m\n\u001b[90mstdout\u001b[2m | src/engine/__tests__/save.test.ts\u001b[2m > \u001b[22m\u001b[2mSave System v3.0 Audit & Strict Data Recovery\u001b[2m > \u001b[22m\u001b[2mStorage persistence & Legacy Fallback\u001b[2m > \u001b[22m\u001b[2mseamlessly loads and migrates old v1 saves from LEGACY_STORAGE_KEY\n\u001b[22m\u001b[39mKhôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.\n\n \u001b[32m✓\u001b[39m src/engine/__tests__/save.test.ts \u001b[2m(\u001b[22m\u001b[2m15 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 27\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/runtime_state.test.ts \u001b[2m(\u001b[22m\u001b[2m6 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 42\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/gacha.test.ts \u001b[2m(\u001b[22m\u001b[2m15 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 27\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/audio.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 17\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/idle.test.ts \u001b[2m(\u001b[22m\u001b[2m19 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 22\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/upgrade.test.ts \u001b[2m(\u001b[22m\u001b[2m14 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 65\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/__tests__/smoke.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 7\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/import_storage_failure.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 21\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/frog_progression_consistency.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 17\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m18 passed\u001b[39m\u001b[22m\u001b[90m (18)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m185 passed\u001b[39m\u001b[22m\u001b[90m (185)\u001b[39m\n\u001b[2m   Start at \u001b[22m 22:51:57\n\u001b[2m   Duration \u001b[22m 7.98s\u001b[2m (transform 6.90s, setup 0ms, collect 14.72s, tests 931ms, environment 13ms, prepare 23.36s)\u001b[22m\n\n",
+            "stderr": "752:26\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m\n    at runTest \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1574:12\u001b[90m)\u001b[39m\n\u001b[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)\u001b[39m\nLỗi khi phân tích legacy V1: SyntaxError: Unexpected token 'c', \"corrupted_v1_string\" is not valid JSON\n    at JSON.parse (<anonymous>)\n    at loadGameStateFromStorage \u001b[90m(D:\\New folder\\S ếch\\\u001b[39msrc\\engine\\save.ts:374:31\u001b[90m)\u001b[39m\n    at \u001b[90mD:\\New folder\\S ếch\\\u001b[39msrc\\engine\\__tests__\\safe_recovery.test.ts:155:20\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:155:11\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:752:26\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m\n    at runTest \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1574:12\u001b[90m)\u001b[39m\n\u001b[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)\u001b[39m\n\n\u001b[90mstderr\u001b[2m | src/engine/__tests__/import_storage_failure.test.ts\u001b[2m > \u001b[22m\u001b[2mTask C01: Import Persistence Integrity & Storage Failure Handling\u001b[2m > \u001b[22m\u001b[2mrejects import and preserves current RAM/persistent state when storage fails (QuotaExceededError)\n\u001b[22m\u001b[39mCảnh báo: Bộ nhớ lưu trữ trình duyệt đã đầy (QuotaExceededError)! Không thể lưu game mới.\n\n"
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "C05",
+      "title": "Codex independent final review va merge readiness assessment",
+      "status": "VERIFIED",
+      "accept": [
+        "Codex CLI review toan bo diff cuoi o che do read-only, xuat CODEX_COLLABORATION_LOG.md va V3_CODEX_COLLABORATIVE_REVIEW.md"
+      ],
+      "tests": [
+        "npm test && npm run build"
+      ],
+      "manual": [],
+      "depends": [
+        "C04"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T16:00:15Z",
+          "why": "Codex doc lap review diff va chi ra 2 loi P1 ve quarantine va autosave leak. Antigravity tiep thu va sua triet de.",
+          "change": "Sua save.ts kiem tra chuoi backup khop chinh xac va khoa autosave khi quarantine that bai; sua CollectionModal.tsx hien thi cap 22; xuat ban CODEX_COLLABORATION_LOG.md va V3_CODEX_COLLABORATIVE_REVIEW.md"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T16:01:15Z",
+        "test_results": [
+          {
+            "command": "npm test && npm run build",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "39m src/engine/__tests__/balance.test.ts \u001b[2m(\u001b[22m\u001b[2m10 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 33\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/store_integration.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 53\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/runtime_state.test.ts \u001b[2m(\u001b[22m\u001b[2m6 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 18\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/gacha.test.ts \u001b[2m(\u001b[22m\u001b[2m15 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 14\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/page_lifecycle.test.ts \u001b[2m(\u001b[22m\u001b[2m7 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 19\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/audio.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 11\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/idle.test.ts \u001b[2m(\u001b[22m\u001b[2m19 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 8\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/__tests__/smoke.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 4\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/import_storage_failure.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 10\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/engine/__tests__/frog_progression_consistency.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 10\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m18 passed\u001b[39m\u001b[22m\u001b[90m (18)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m185 passed\u001b[39m\u001b[22m\u001b[90m (185)\u001b[39m\n\u001b[2m   Start at \u001b[22m 23:01:02\n\u001b[2m   Duration \u001b[22m 3.08s\u001b[2m (transform 1.54s, setup 0ms, collect 4.43s, tests 423ms, environment 7ms, prepare 10.80s)\u001b[22m\n\n\n> s-ech-web-game@1.0.0 build\n> tsc && vite build\n\n\u001b[36mvite v6.4.4 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 1953 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  1.18 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.70 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[35massets/index-DN2Bf6tz.css  \u001b[39m\u001b[1m\u001b[2m 56.84 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  9.67 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/index-CTuVI2MC.js   \u001b[39m\u001b[1m\u001b[2m341.68 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 96.97 kB\u001b[22m\n\u001b[32m✓ built in 4.83s\u001b[39m\n",
+            "stderr": "chunk-hooks.js:1863:10\u001b[90m)\u001b[39m\n    at runTest \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1574:12\u001b[90m)\u001b[39m\n\u001b[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)\u001b[39m\n\n\u001b[90mstderr\u001b[2m | src/engine/__tests__/save_validation.test.ts\u001b[2m > \u001b[22m\u001b[2mTask R08: Save Validation, Sanitization and Recovery Test Suite\u001b[2m > \u001b[22m\u001b[2mrecovers player state from legacy v1 save when v2 storage is corrupted\n\u001b[22m\u001b[39mLỗi phân tích JSON save V2, thử khôi phục từ legacy V1... SyntaxError: Unexpected token 'i', ...\"broken\": [invalid js\"... is not valid JSON\n    at JSON.parse (<anonymous>)\n    at loadGameStateFromStorage \u001b[90m(D:\\New folder\\S ếch\\\u001b[39msrc\\engine\\save.ts:372:31\u001b[90m)\u001b[39m\n    at \u001b[90mD:\\New folder\\S ếch\\\u001b[39msrc\\engine\\__tests__\\save_validation.test.ts:253:20\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:155:11\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:752:26\n    at \u001b[90mfile:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m\n    at runTest \u001b[90m(file:///D:/New%20folder/S%20%E1%BA%BFch/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1574:12\u001b[90m)\u001b[39m\n\u001b[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)\u001b[39m\n\n\u001b[90mstderr\u001b[2m | src/engine/__tests__/import_storage_failure.test.ts\u001b[2m > \u001b[22m\u001b[2mTask C01: Import Persistence Integrity & Storage Failure Handling\u001b[2m > \u001b[22m\u001b[2mrejects import and preserves current RAM/persistent state when storage fails (QuotaExceededError)\n\u001b[22m\u001b[39mCảnh báo: Bộ nhớ lưu trữ trình duyệt đã đầy (QuotaExceededError)! Không thể lưu game mới.\n\n"
           }
         ],
         "manual_evidence": null

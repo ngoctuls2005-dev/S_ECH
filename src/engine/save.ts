@@ -7,6 +7,7 @@ import { ACHIEVEMENTS_DEFINITIONS } from './achievements';
 export const CURRENT_SAVE_VERSION = 2;
 export const STORAGE_KEY = 's_ech_game_save_v2';
 export const LEGACY_STORAGE_KEY = 's_ech_game_save_v1';
+export const CORRUPTED_BACKUP_KEY = 's_ech_game_save_v2_corrupted_backup';
 export const LEGACY_FAVORITES_KEY = 's_ech_favorite_frogs';
 export const LEGACY_GACHA_HISTORY_KEY = 's_ech_gacha_history';
 
@@ -116,7 +117,7 @@ export function migrateSaveData(raw: any): GameSaveData {
   const maxFutureTimestamp = now + 60_000;
 
   // 1. Owned Frogs Sanitization
-  const MAX_FROG_LEVEL = 50;
+  const MAX_SAVED_FROG_LEVEL = 50;
   const MAX_FROG_FRAGMENTS = 10_000_000;
   const ownedFrogs: Record<string, FrogOwned> = {};
 
@@ -125,7 +126,7 @@ export function migrateSaveData(raw: any): GameSaveData {
     const rawUnlockedAt = normalizeCounter(rawFrog.unlockedAt);
     ownedFrogs[frogId] = {
       id: frogId,
-      level: Math.max(1, Math.min(MAX_FROG_LEVEL, normalizeCounter(rawFrog.level, 1))),
+      level: Math.max(1, Math.min(MAX_SAVED_FROG_LEVEL, normalizeCounter(rawFrog.level, 1))),
       fragments: Math.max(0, Math.min(MAX_FROG_FRAGMENTS, normalizeCounter(rawFrog.fragments))),
       unlockedAt: rawUnlockedAt > maxFutureTimestamp ? now : rawUnlockedAt,
     };
@@ -314,6 +315,16 @@ export function validateSaveData(data: any): { valid: boolean; error?: string; c
   return { valid: true, cleanData };
 }
 
+let isAutoSaveBlockedDueToFailedQuarantine = false;
+
+export function isSaveStorageBlocked(): boolean {
+  return isAutoSaveBlockedDueToFailedQuarantine;
+}
+
+export function resetSaveStorageBlock(): void {
+  isAutoSaveBlockedDueToFailedQuarantine = false;
+}
+
 /**
  * Lưu vào LocalStorage / Storage
  */
@@ -321,6 +332,11 @@ export function saveGameStateToStorage(state: GameSaveData, customStorage?: Stor
   try {
     const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
     if (!storage) return false;
+
+    if (isAutoSaveBlockedDueToFailedQuarantine) {
+      console.warn('Ghi lưu trữ bị khóa để bảo vệ bản sao lưu V2 bị hỏng chưa được cách ly an toàn.');
+      return false;
+    }
 
     const toSave: GameSaveData = {
       ...state,
@@ -347,6 +363,8 @@ export function loadGameStateFromStorage(customStorage?: Storage): GameSaveData 
     const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
     if (!storage) return DEFAULT_INITIAL_SAVE;
 
+    let v2CorruptedRaw: string | null = null;
+
     // 1. Thử nạp bản lưu v2
     const rawV2 = storage.getItem(STORAGE_KEY);
     if (rawV2) {
@@ -354,11 +372,14 @@ export function loadGameStateFromStorage(customStorage?: Storage): GameSaveData 
         const parsedV2 = JSON.parse(rawV2);
         const validationV2 = validateSaveData(parsedV2);
         if (validationV2.valid && validationV2.cleanData) {
+          isAutoSaveBlockedDueToFailedQuarantine = false;
           return validationV2.cleanData;
         }
         console.warn('Dữ liệu save V2 không hợp lệ, thử khôi phục từ legacy V1...', validationV2.error);
+        v2CorruptedRaw = rawV2;
       } catch (e) {
         console.warn('Lỗi phân tích JSON save V2, thử khôi phục từ legacy V1...', e);
+        v2CorruptedRaw = rawV2;
       }
     }
 
@@ -370,7 +391,35 @@ export function loadGameStateFromStorage(customStorage?: Storage): GameSaveData 
         const validationV1 = validateSaveData(parsedV1);
         if (validationV1.valid && validationV1.cleanData) {
           console.info('Khôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.');
-          saveGameStateToStorage(validationV1.cleanData, storage);
+
+          // Nếu có chuỗi V2 bị hỏng, tiến hành quarantine backup an toàn trước khi thay thế
+          let canSafelyOverwrite = false;
+          if (v2CorruptedRaw) {
+            try {
+              let targetBackupKey = CORRUPTED_BACKUP_KEY;
+              const existingBackup = storage.getItem(CORRUPTED_BACKUP_KEY);
+              if (existingBackup && existingBackup !== v2CorruptedRaw) {
+                targetBackupKey = `${CORRUPTED_BACKUP_KEY}_${Date.now()}`;
+              }
+              storage.setItem(targetBackupKey, v2CorruptedRaw);
+
+              // Xác nhận chính xác nội dung backup trên storage phải khớp chuỗi v2CorruptedRaw hiện tại
+              canSafelyOverwrite = storage.getItem(targetBackupKey) === v2CorruptedRaw;
+            } catch (backupErr) {
+              console.warn('Không thể tạo quarantine backup cho V2 hỏng, dừng ghi đè STORAGE_KEY:', backupErr);
+              canSafelyOverwrite = false;
+            }
+          } else {
+            canSafelyOverwrite = true;
+          }
+
+          if (canSafelyOverwrite) {
+            isAutoSaveBlockedDueToFailedQuarantine = false;
+            saveGameStateToStorage(validationV1.cleanData, storage);
+          } else {
+            // Khóa mọi lần autosave tiếp theo để bảo vệ chuỗi V2 gốc chưa được backup
+            isAutoSaveBlockedDueToFailedQuarantine = true;
+          }
           return validationV1.cleanData;
         }
       } catch (e) {
@@ -482,6 +531,7 @@ export function clearSavedGame(customStorage?: Storage): void {
     if (!storage) return;
     storage.removeItem(STORAGE_KEY);
     storage.removeItem(LEGACY_STORAGE_KEY);
+    storage.removeItem(CORRUPTED_BACKUP_KEY);
     storage.removeItem(LEGACY_FAVORITES_KEY);
     storage.removeItem(LEGACY_GACHA_HISTORY_KEY);
   } catch (e) {

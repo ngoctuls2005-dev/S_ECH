@@ -7,6 +7,7 @@ import {
   calculateFrogBuffValue,
   canLevelUpFrog,
   calculateActiveFrogBuffs,
+  MAX_FROG_LEVEL,
 } from '../engine/frogs';
 import { calculateClickPower } from '../engine/clicker';
 import { calculatePointsPerSecond } from '../engine/idle';
@@ -437,14 +438,22 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                         <div className="flex justify-between text-[10px] text-slate-300 mb-0.5">
                           <span>Tiến trình mảnh:</span>
                           <span className="font-bold">
-                            {owned.fragments} / {reqFragments}
+                            {owned.level >= MAX_FROG_LEVEL ? (
+                              <span className="text-amber-400">Đạt Cấp Tối Đa ({Math.min(owned.level, MAX_FROG_LEVEL)})</span>
+                            ) : (
+                              `${owned.fragments} / ${reqFragments}`
+                            )}
                           </span>
                         </div>
                         <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-pond-500 to-emerald-400 rounded-full transition-all"
+                            className={`h-full rounded-full transition-all ${
+                              owned.level >= MAX_FROG_LEVEL
+                                ? 'bg-gradient-to-r from-amber-400 to-yellow-300 w-full'
+                                : 'bg-gradient-to-r from-pond-500 to-emerald-400'
+                            }`}
                             style={{
-                              width: `${Math.min(100, (owned.fragments / reqFragments) * 100)}%`,
+                              width: owned.level >= MAX_FROG_LEVEL ? '100%' : `${Math.min(100, (owned.fragments / reqFragments) * 100)}%`,
                             }}
                           />
                         </div>
