@@ -326,6 +326,15 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         updatedCombo = 0;
       }
 
+      // Nếu tài liệu đang ở trạng thái hidden, không tích lũy active idle income
+      const isHidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+      if (isHidden) {
+        if (updatedCombo !== state.currentCombo) {
+          set({ currentCombo: updatedCombo });
+        }
+        return;
+      }
+
       if (pps <= 0) {
         if (updatedCombo !== state.currentCombo) {
           set({ currentCombo: updatedCombo, lastActiveTimestamp: Date.now() });
@@ -658,6 +667,8 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       soundManager.setSoundEnabled(d.settings.soundEnabled);
       soundManager.setVolume(d.settings.volume);
       soundManager.setMusicEnabled(d.settings.musicEnabled);
+      
+      const now = Date.now();
       set({
         points: d.points,
         totalPointsEarned: d.totalPointsEarned,
@@ -673,6 +684,14 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         settings: d.settings,
         favoriteFrogIds: d.favoriteFrogIds || [],
         gachaHistory: d.gachaHistory || [],
+        // Khởi tạo lại toàn bộ runtime states để không rò rỉ phiên cũ
+        currentCombo: 0,
+        lastClickTimestamp: 0,
+        idleAccumulator: 0,
+        lastActiveTimestamp: now,
+        offlineReward: null,
+        floatingTexts: [],
+        newAchievementUnlocked: null,
       });
 
       return { success: true };
@@ -683,6 +702,8 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       soundManager.setSoundEnabled(DEFAULT_INITIAL_SAVE.settings.soundEnabled);
       soundManager.setVolume(DEFAULT_INITIAL_SAVE.settings.volume);
       soundManager.setMusicEnabled(DEFAULT_INITIAL_SAVE.settings.musicEnabled);
+      
+      const now = Date.now();
       set({
         points: DEFAULT_INITIAL_SAVE.points,
         totalPointsEarned: DEFAULT_INITIAL_SAVE.totalPointsEarned,
@@ -699,8 +720,14 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         settings: DEFAULT_INITIAL_SAVE.settings,
         favoriteFrogIds: [],
         gachaHistory: [],
+        // Khởi tạo lại toàn bộ runtime states
+        lastClickTimestamp: 0,
+        idleAccumulator: 0,
+        lastActiveTimestamp: now,
+        offlineReward: null,
         floatingTexts: [],
         activeTab: 'pond',
+        newAchievementUnlocked: null,
       });
     },
   };

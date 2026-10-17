@@ -53,6 +53,7 @@ export interface UpgradeConfig {
     | 'combo_bonus_flat'   // Tăng hiệu quả combo
     | 'multiplier_percent';// Tăng % tổng điểm nhận
   effectValue: number;
+  maxLevel?: number;
 }
 
 export interface ClickResult {

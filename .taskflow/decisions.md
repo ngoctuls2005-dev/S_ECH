@@ -318,3 +318,45 @@
 ### [R03] VERIFIED (2026-10-17T09:15:20Z)
 - **Test tự động:** 1 lệnh PASS
 
+### [R04] Ghi chú quyết định (2026-10-17T09:18:58Z)
+- **Vì sao (Why):** Dong goi toan bo ho so code review doc lap va day commit len remote GitHub tren nhanh rieng
+- **Thay đổi & Tác động (Change):** Chay thanh cong 11 test suites (142 tests) va production build, commit 376a4f279fd0637c4d825e2206135a08e6eeb7ad va push len origin fix/v2-quality-recovery
+
+### [R04] VERIFIED (2026-10-17T09:19:16Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [R05] Ghi chú quyết định (2026-10-17T09:28:46Z)
+- **Vì sao (Why):** Khoi tao lai toan bo runtime state khi importSave va resetGame trong gameStore de ngan ngua ro ri tu phien choi cu
+- **Thay đổi & Tác động (Change):** Cap nhat gameStore.ts reset currentCombo, lastClickTimestamp, idleAccumulator, lastActiveTimestamp ve now, offlineReward, floatingTexts; tao runtime_state.test.ts kiem chung 6 kich ban Zustand truc tiep
+
+### [R05] VERIFIED (2026-10-17T09:29:00Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [R06] Ghi chú quyết định (2026-10-17T09:32:31Z)
+- **Vì sao (Why):** Phan dinh ro rang giua active income va offline income khi chuyen tab visibility de ngan chan double count hoac ro ri active tick khi tab hidden
+- **Thay đổi & Tác động (Change):** Them check visibilityState === visible trong rAF loop cua App.tsx va tick() cua gameStore.ts; tao page_lifecycle.test.ts kiem chung 7 kich ban lifecycle qua fake timers
+
+### [R06] VERIFIED (2026-10-17T09:32:54Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [R07] Ghi chú quyết định (2026-10-17T09:36:34Z)
+- **Vì sao (Why):** Kiem thu tich hop thuc te xuyen suot Zustand actions va Golden Fixture v1 bat bien de dong khoang trong kiem thu
+- **Thay đổi & Tác động (Change):** Tao store_integration.test.ts kiem tra Invariant Golden Fixture v1, full action flow, chong duplicate reward va atomic gacha transaction
+
+### [R07] VERIFIED (2026-10-17T09:36:50Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [R08] Ghi chú quyết định (2026-10-17T09:42:14Z)
+- **Vì sao (Why):** Mo rong co che validate va tu dong phuc hoi du lieu save: kiem tra upgrade IDs hop le, clamp level ech va fragments, gacha pity, gacha history day du schema, deduplicate favorites va achievements, gioi han timestamp tuong lai, kiem tra MAX_SAFE_INTEGER va tu dong phuc hoi tu v1 khi v2 bi hong
+- **Thay đổi & Tác động (Change):** Cap nhat save.ts va tao save_validation.test.ts gom 11 bai test chuyen sau dat 100% pass
+
+### [R08] VERIFIED (2026-10-17T09:42:23Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [R09] Ghi chú quyết định (2026-10-17T09:44:06Z)
+- **Vì sao (Why):** Danh gia toan dien tai nguyen anh ech B06, phan dinh ro Technical Merge Readiness dat YES va Content Release Readiness la NO do 25 placeholder Pillow, dong thoi xuat ban V3_FINAL_INTEGRATION_REVIEW.md
+- **Thay đổi & Tác động (Change):** Tao bao cao V3_FINAL_INTEGRATION_REVIEW.md voi day du 6 phan tong ket ky thuat, bang chung test, build va quyet dinh merge readiness
+
+### [R09] VERIFIED (2026-10-17T09:44:26Z)
+- **Test tự động:** 1 lệnh PASS
+

@@ -1,6 +1,8 @@
 import { FrogOwned, GameSettings } from './types';
 import { GachaPityState, INITIAL_PITY_STATE, GachaHistoryEntry } from './gacha';
 import { FROG_SPECIES_LIST } from '../data/frogs';
+import { UPGRADES_CONFIG } from './upgrade';
+import { ACHIEVEMENTS_DEFINITIONS } from './achievements';
 
 export const CURRENT_SAVE_VERSION = 2;
 export const STORAGE_KEY = 's_ech_game_save_v2';
@@ -107,15 +109,25 @@ export function migrateSaveData(raw: any): GameSaveData {
   const rawUpgrades = isRecord(raw.upgrades) ? raw.upgrades : {};
   const rawOwnedFrogs = isRecord(raw.ownedFrogs) ? raw.ownedFrogs : {};
   const validFrogIds = new Set(FROG_SPECIES_LIST.map((frog) => frog.id));
+  const validUpgradeIds = new Set(UPGRADES_CONFIG.map((u) => u.id));
+  const validAchievementIds = new Set(ACHIEVEMENTS_DEFINITIONS.map((a) => a.id));
+
+  const now = Date.now();
+  const maxFutureTimestamp = now + 60_000;
+
+  // 1. Owned Frogs Sanitization
+  const MAX_FROG_LEVEL = 50;
+  const MAX_FROG_FRAGMENTS = 10_000_000;
   const ownedFrogs: Record<string, FrogOwned> = {};
 
   for (const [frogId, rawFrog] of Object.entries(rawOwnedFrogs)) {
     if (!validFrogIds.has(frogId) || !isRecord(rawFrog)) continue;
+    const rawUnlockedAt = normalizeCounter(rawFrog.unlockedAt);
     ownedFrogs[frogId] = {
       id: frogId,
-      level: Math.max(1, normalizeCounter(rawFrog.level, 1)),
-      fragments: normalizeCounter(rawFrog.fragments),
-      unlockedAt: normalizeCounter(rawFrog.unlockedAt),
+      level: Math.max(1, Math.min(MAX_FROG_LEVEL, normalizeCounter(rawFrog.level, 1))),
+      fragments: Math.max(0, Math.min(MAX_FROG_FRAGMENTS, normalizeCounter(rawFrog.fragments))),
+      unlockedAt: rawUnlockedAt > maxFutureTimestamp ? now : rawUnlockedAt,
     };
   }
 
@@ -123,12 +135,34 @@ export function migrateSaveData(raw: any): GameSaveData {
     ownedFrogs.green_frog = { ...DEFAULT_INITIAL_SAVE.ownedFrogs.green_frog };
   }
 
+  // 2. Main Frog
   const mainFrogId = typeof raw.mainFrogId === 'string' && ownedFrogs[raw.mainFrogId]
     ? raw.mainFrogId
     : ownedFrogs.green_frog
       ? 'green_frog'
       : Object.keys(ownedFrogs)[0];
+
+  // 3. Upgrades Sanitization (lọc ID rác, clamp level âm / maxLevel)
+  const upgrades: Record<string, number> = {};
+  for (const [id, level] of Object.entries(rawUpgrades)) {
+    if (!validUpgradeIds.has(id)) continue;
+    if (typeof level === 'number' && Number.isFinite(level) && level >= 0) {
+      const config = UPGRADES_CONFIG.find((u) => u.id === id);
+      const normalizedLevel = Math.floor(level);
+      const safeLevel = config?.maxLevel ? Math.min(config.maxLevel, normalizedLevel) : normalizedLevel;
+      upgrades[id] = safeLevel;
+    }
+  }
+
+  // 4. Gacha Pity Sanitization (không âm, không vượt trần pity)
   const rawPity = isRecord(raw.pity) ? raw.pity : {};
+  const pity: GachaPityState = {
+    sinceLastRare: Math.min(10, Math.max(0, normalizeCounter(rawPity.sinceLastRare, INITIAL_PITY_STATE.sinceLastRare))),
+    sinceLastEpic: Math.min(30, Math.max(0, normalizeCounter(rawPity.sinceLastEpic, INITIAL_PITY_STATE.sinceLastEpic))),
+    sinceLastLegendary: Math.min(100, Math.max(0, normalizeCounter(rawPity.sinceLastLegendary, INITIAL_PITY_STATE.sinceLastLegendary))),
+  };
+
+  // 5. Settings Sanitization
   const settings = {
     soundEnabled: typeof rawSettings.soundEnabled === 'boolean'
       ? rawSettings.soundEnabled
@@ -144,17 +178,19 @@ export function migrateSaveData(raw: any): GameSaveData {
       : DEFAULT_INITIAL_SAVE.settings.reducedMotion,
   };
 
-  // Migration danh sách yêu thích
+  // 6. Favorite Frog IDs (loại trừ trùng lặp và ID rác)
   let favoriteFrogIds: string[] = [];
   if (Array.isArray(raw.favoriteFrogIds)) {
-    favoriteFrogIds = raw.favoriteFrogIds.filter((id: unknown): id is string => typeof id === 'string' && validFrogIds.has(id));
+    const valid = raw.favoriteFrogIds.filter((id: unknown): id is string => typeof id === 'string' && validFrogIds.has(id));
+    favoriteFrogIds = Array.from(new Set(valid));
   } else if (typeof window !== 'undefined') {
     try {
       const legacyFav = localStorage.getItem(LEGACY_FAVORITES_KEY);
       if (legacyFav) {
         const parsed = JSON.parse(legacyFav);
         if (Array.isArray(parsed)) {
-          favoriteFrogIds = parsed.filter((id: unknown): id is string => typeof id === 'string' && validFrogIds.has(id));
+          const valid = parsed.filter((id: unknown): id is string => typeof id === 'string' && validFrogIds.has(id));
+          favoriteFrogIds = Array.from(new Set(valid));
         }
       }
     } catch {
@@ -162,11 +198,33 @@ export function migrateSaveData(raw: any): GameSaveData {
     }
   }
 
-  // Migration lịch sử gacha
+  // 7. Gacha History Sanitization (chuẩn hóa đầy đủ schema và kiểu dữ liệu)
+  const parseHistoryEntry = (entry: any, index: number): GachaHistoryEntry | null => {
+    if (!isRecord(entry)) return null;
+    if (typeof entry.frogId !== 'string' || !validFrogIds.has(entry.frogId)) return null;
+    const species = FROG_SPECIES_LIST.find((f) => f.id === entry.frogId);
+    const ts = typeof entry.timestamp === 'number' && Number.isFinite(entry.timestamp) && entry.timestamp > 0
+      ? (entry.timestamp > maxFutureTimestamp ? now : entry.timestamp)
+      : now;
+    return {
+      id: typeof entry.id === 'string' && entry.id ? entry.id : `hist_${ts}_${index}`,
+      timestamp: ts,
+      poolId: (entry.poolId === 'rung_mua' || entry.poolId === 'dem_trang') ? entry.poolId : 'ao_sen',
+      frogId: entry.frogId,
+      frogNameVi: typeof entry.frogNameVi === 'string' && entry.frogNameVi ? entry.frogNameVi : (species?.nameVi || 'Ếch'),
+      rarity: (entry.rarity && ['common', 'rare', 'epic', 'legendary', 'mythic'].includes(entry.rarity))
+        ? entry.rarity
+        : (species?.rarity || 'common'),
+      isNew: Boolean(entry.isNew),
+      fragmentsAdded: normalizeCounter(entry.fragmentsAdded, 0),
+    };
+  };
+
   let gachaHistory: GachaHistoryEntry[] = [];
   if (Array.isArray(raw.gachaHistory)) {
     gachaHistory = raw.gachaHistory
-      .filter((entry: any): entry is GachaHistoryEntry => isRecord(entry) && typeof entry.frogId === 'string' && typeof entry.timestamp === 'number')
+      .map(parseHistoryEntry)
+      .filter((entry: GachaHistoryEntry | null): entry is GachaHistoryEntry => entry !== null)
       .slice(0, 20);
   } else if (typeof window !== 'undefined') {
     try {
@@ -175,13 +233,27 @@ export function migrateSaveData(raw: any): GameSaveData {
         const parsed = JSON.parse(legacyHistory);
         if (Array.isArray(parsed)) {
           gachaHistory = parsed
-            .filter((entry: any): entry is GachaHistoryEntry => isRecord(entry) && typeof entry.frogId === 'string' && typeof entry.timestamp === 'number')
+            .map(parseHistoryEntry)
+            .filter((entry: GachaHistoryEntry | null): entry is GachaHistoryEntry => entry !== null)
             .slice(0, 20);
         }
       }
     } catch {
       // Bỏ qua lỗi parse legacy
     }
+  }
+
+  // 8. Achievements (loại bỏ ID rác và triệt tiêu trùng lặp)
+  let unlockedAchievements: string[] = [];
+  if (Array.isArray(raw.unlockedAchievements)) {
+    const valid = raw.unlockedAchievements.filter((id: unknown): id is string => typeof id === 'string' && validAchievementIds.has(id));
+    unlockedAchievements = Array.from(new Set(valid));
+  }
+
+  // 9. Last Saved Timestamp (không cho phép nằm ở tương lai quá xa)
+  let lastSavedTimestamp = now;
+  if (typeof raw.lastSavedTimestamp === 'number' && Number.isFinite(raw.lastSavedTimestamp) && raw.lastSavedTimestamp > 0) {
+    lastSavedTimestamp = raw.lastSavedTimestamp > maxFutureTimestamp ? now : raw.lastSavedTimestamp;
   }
 
   return {
@@ -192,29 +264,15 @@ export function migrateSaveData(raw: any): GameSaveData {
     highestCombo: normalizeCounter(raw.highestCombo, 0),
     totalCrits: normalizeCounter(raw.totalCrits, 0),
     totalGachaPulls: normalizeCounter(raw.totalGachaPulls, 0),
-    upgrades: Object.fromEntries(
-      Object.entries(rawUpgrades)
-        .filter(([, level]) => typeof level === 'number' && Number.isFinite(level) && level >= 0)
-        .map(([id, level]) => [id, Math.floor(level as number)])
-    ),
+    upgrades,
     ownedFrogs,
     mainFrogId,
-    pity: {
-      sinceLastRare: normalizeCounter(rawPity.sinceLastRare, INITIAL_PITY_STATE.sinceLastRare),
-      sinceLastEpic: normalizeCounter(rawPity.sinceLastEpic, INITIAL_PITY_STATE.sinceLastEpic),
-      sinceLastLegendary: normalizeCounter(rawPity.sinceLastLegendary, INITIAL_PITY_STATE.sinceLastLegendary),
-    },
-    unlockedAchievements: Array.isArray(raw.unlockedAchievements)
-      ? raw.unlockedAchievements.filter((id: unknown): id is string => typeof id === 'string')
-      : [],
+    pity,
+    unlockedAchievements,
     settings,
     favoriteFrogIds,
     gachaHistory,
-    lastSavedTimestamp: typeof raw.lastSavedTimestamp === 'number'
-      && Number.isFinite(raw.lastSavedTimestamp)
-      && raw.lastSavedTimestamp > 0
-      ? raw.lastSavedTimestamp
-      : Date.now(),
+    lastSavedTimestamp,
   };
 }
 
@@ -230,17 +288,26 @@ export function validateSaveData(data: any): { valid: boolean; error?: string; c
     return { valid: false, error: 'Bản lưu được tạo bởi phiên bản game mới hơn' };
   }
 
-  // Kiểm tra điểm số
+  // Kiểm tra điểm số và giới hạn an toàn hệ thống
   if (typeof data.points !== 'number' || !Number.isFinite(data.points) || data.points < 0) {
     return { valid: false, error: 'Điểm số không hợp lệ' };
+  }
+  if (data.points > Number.MAX_SAFE_INTEGER) {
+    return { valid: false, error: 'Điểm số vượt quá giới hạn an toàn tối đa của hệ thống (MAX_SAFE_INTEGER)' };
   }
 
   if (typeof data.totalPointsEarned !== 'number' || !Number.isFinite(data.totalPointsEarned) || data.totalPointsEarned < 0) {
     return { valid: false, error: 'Tổng điểm kiếm được không hợp lệ' };
   }
+  if (data.totalPointsEarned > Number.MAX_SAFE_INTEGER) {
+    return { valid: false, error: 'Tổng điểm kiếm được vượt quá giới hạn an toàn tối đa (MAX_SAFE_INTEGER)' };
+  }
 
   if (typeof data.totalClicks !== 'number' || !Number.isFinite(data.totalClicks) || data.totalClicks < 0) {
     return { valid: false, error: 'Tổng số lượt click không hợp lệ' };
+  }
+  if (data.totalClicks > Number.MAX_SAFE_INTEGER) {
+    return { valid: false, error: 'Tổng số lượt click vượt quá giới hạn an toàn tối đa (MAX_SAFE_INTEGER)' };
   }
 
   const cleanData = migrateSaveData(data);
@@ -273,24 +340,44 @@ export function saveGameStateToStorage(state: GameSaveData, customStorage?: Stor
 }
 
 /**
- * Nạp từ LocalStorage / Storage (Hỗ trợ fallback v1 sang v2)
+ * Nạp từ LocalStorage / Storage (Hỗ trợ fallback v1 sang v2 khi v2 hỏng)
  */
 export function loadGameStateFromStorage(customStorage?: Storage): GameSaveData {
   try {
     const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
     if (!storage) return DEFAULT_INITIAL_SAVE;
 
-    let raw = storage.getItem(STORAGE_KEY);
-    if (!raw) {
-      raw = storage.getItem(LEGACY_STORAGE_KEY);
+    // 1. Thử nạp bản lưu v2
+    const rawV2 = storage.getItem(STORAGE_KEY);
+    if (rawV2) {
+      try {
+        const parsedV2 = JSON.parse(rawV2);
+        const validationV2 = validateSaveData(parsedV2);
+        if (validationV2.valid && validationV2.cleanData) {
+          return validationV2.cleanData;
+        }
+        console.warn('Dữ liệu save V2 không hợp lệ, thử khôi phục từ legacy V1...', validationV2.error);
+      } catch (e) {
+        console.warn('Lỗi phân tích JSON save V2, thử khôi phục từ legacy V1...', e);
+      }
     }
-    if (!raw) return DEFAULT_INITIAL_SAVE;
 
-    const parsed = JSON.parse(raw);
-    const validation = validateSaveData(parsed);
-    if (validation.valid && validation.cleanData) {
-      return validation.cleanData;
+    // 2. Fallback nạp legacy v1 nếu v2 không có hoặc bị hỏng
+    const rawV1 = storage.getItem(LEGACY_STORAGE_KEY);
+    if (rawV1) {
+      try {
+        const parsedV1 = JSON.parse(rawV1);
+        const validationV1 = validateSaveData(parsedV1);
+        if (validationV1.valid && validationV1.cleanData) {
+          console.info('Khôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.');
+          saveGameStateToStorage(validationV1.cleanData, storage);
+          return validationV1.cleanData;
+        }
+      } catch (e) {
+        console.error('Lỗi khi phân tích legacy V1:', e);
+      }
     }
+
     return DEFAULT_INITIAL_SAVE;
   } catch (e) {
     console.error('Lỗi khi nạp dữ liệu lưu game:', e);

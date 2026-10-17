@@ -63,7 +63,8 @@ export default function App() {
       const deltaSeconds = (currentTime - lastTimeRef.current) / 1000;
       lastTimeRef.current = currentTime;
 
-      if (deltaSeconds > 0 && deltaSeconds < 5) {
+      const isVisible = typeof document === 'undefined' || document.visibilityState === 'visible';
+      if (isVisible && deltaSeconds > 0 && deltaSeconds < 5) {
         tick(deltaSeconds);
       }
 
