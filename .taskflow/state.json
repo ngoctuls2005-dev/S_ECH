@@ -2,7 +2,7 @@
   "project": "Web Game S ech",
   "goal": "Xay dung web game Idle Clicker + Gacha + Frog Collection S ech hoan chinh co kiem chung",
   "created_at": "2026-10-15T13:58:31Z",
-  "updated_at": "2026-10-17T09:02:11Z",
+  "updated_at": "2026-10-17T09:15:29Z",
   "tasks": [
     {
       "id": "T01",
@@ -1475,7 +1475,7 @@
     {
       "id": "V09",
       "title": "Chuan hoa Tai lieu va Xuat Ban Bao Cao V3_DEEP_AUDIT_AND_FIX_REPORT.md",
-      "status": "DOING",
+      "status": "VERIFIED",
       "accept": [
         "Xuat ban V3_DEEP_AUDIT_AND_FIX_REPORT.md voi day du bang trang thai CONFIRMED, FIXED, PARTIAL, commit tren nhanh fix"
       ],
@@ -1485,6 +1485,150 @@
       "manual": [],
       "depends": [
         "V08"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T09:03:54Z",
+          "why": "Chuan hoa tai lieu v3.0, xuat ban bao cao kiem toan toan dien va dong goi commit tren nhanh fix",
+          "change": "Cap nhat README.md, tao V3_DEEP_AUDIT_AND_FIX_REPORT.md voi 9 hang muc va commit git 2b38f13 tren nhanh fix/v2-quality-recovery"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T09:03:57Z",
+        "test_results": [
+          {
+            "command": "git status",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "On branch fix/v2-quality-recovery\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   .taskflow/decisions.md\n\tmodified:   .taskflow/state.json\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\n",
+            "stderr": ""
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "R01",
+      "title": "Xac minh Git Local va Day nhanh fix/v2-quality-recovery len GitHub",
+      "status": "VERIFIED",
+      "accept": [
+        "Commit 2b38f13 bao toan, day thanh cong len origin ma khong merge vao main, khong force push"
+      ],
+      "tests": [
+        "git branch -vv"
+      ],
+      "manual": [],
+      "depends": [
+        "V09"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T09:08:32Z",
+          "why": "Xac minh commit 2b38f13 tren nhanh fix/v2-quality-recovery ton tai day du va day len GitHub remote",
+          "change": "Chay git push -u origin fix/v2-quality-recovery thanh cong len https://github.com/ngoctuls2005-dev/S_ECH.git ma khong merge vao main hay force push"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T09:08:37Z",
+        "test_results": [
+          {
+            "command": "git branch -vv",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "* fix/v2-quality-recovery 2b38f13 [origin/fix/v2-quality-recovery] feat(v3): deep code audit and quality recovery v3.0\n  main                    96b910c [origin/main] feat: Content Expansion v2.0 - 40 frog species, 18 upgrades, 3 gacha pools, 40 achievements, combo milestones and save v2\n",
+            "stderr": ""
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "R02",
+      "title": "Bo Kiem thu Hoi quy Chuyen sau v3.0 cho 8 kich ban thuc te",
+      "status": "VERIFIED",
+      "accept": [
+        "Pass 100% 8 kich ban save v1 v2 checksum, favorites, gacha history, crit, gacha pity, combo secret, offline"
+      ],
+      "tests": [
+        "npm test -- src/engine/__tests__/v3_regression.test.ts"
+      ],
+      "manual": [],
+      "depends": [
+        "R01"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T09:13:23Z",
+          "why": "Kiem chung hoi quy thuc te 8 kich ban bat buoc cua v3.0 ma khong sua test de doi pass gia tao",
+          "change": "Tao src/engine/__tests__/v3_regression.test.ts kiem chung toan dien: save v1 DJB2, export/reset/import v2 bao toan favorites va gacha history, crit/gacha counters that, khong cong lai thuong thanh tuu, combo va secret ribbit, offline checkpoint cap 8h, va gacha pity rate"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T09:13:31Z",
+        "test_results": [
+          {
+            "command": "npm test -- src/engine/__tests__/v3_regression.test.ts",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "\n> s-ech-web-game@1.0.0 test\n> vitest run src/engine/__tests__/v3_regression.test.ts\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mD:/New folder/S áº¿ch\u001b[39m\n\n \u001b[32mâœ“\u001b[39m src/engine/__tests__/v3_regression.test.ts \u001b[2m(\u001b[22m\u001b[2m14 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 12\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m14 passed\u001b[39m\u001b[22m\u001b[90m (14)\u001b[39m\n\u001b[2m   Start at \u001b[22m 16:13:29\n\u001b[2m   Duration \u001b[22m 987ms\u001b[2m (transform 111ms, setup 0ms, collect 169ms, tests 12ms, environment 0ms, prepare 233ms)\u001b[22m\n\n",
+            "stderr": ""
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "R03",
+      "title": "Sua Doi B06 FIXED sang PARTIAL va Lap Bang Theo Doi 25 Anh Can Thay The",
+      "status": "VERIFIED",
+      "accept": [
+        "Bao cao cap nhat B06 la PARTIAL, co bang theo doi chi tiet 25 anh placeholder kem nguon, license va tinh trang tach nen"
+      ],
+      "tests": [
+        "git status"
+      ],
+      "manual": [],
+      "depends": [
+        "R02"
+      ],
+      "notes": [
+        {
+          "timestamp": "2026-10-17T09:15:16Z",
+          "why": "Sua trang thai van de B06 tu FIXED sang PARTIAL vi 25 anh Pillow van la placeholder chua phai anh that tach nen",
+          "change": "Cap nhat V3_DEEP_AUDIT_AND_FIX_REPORT.md: chuyen B06 ve PARTIAL va bo sung bang theo doi chi tiet 25 anh placeholder can thay the kem nguon, license va tinh trang nghiem thu"
+        }
+      ],
+      "diagnoses": [],
+      "verification": {
+        "timestamp": "2026-10-17T09:15:20Z",
+        "test_results": [
+          {
+            "command": "git status",
+            "returncode": 0,
+            "passed": true,
+            "stdout": "On branch fix/v2-quality-recovery\nYour branch is up to date with 'origin/fix/v2-quality-recovery'.\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   .taskflow/decisions.md\n\tmodified:   .taskflow/state.json\n\tmodified:   V3_DEEP_AUDIT_AND_FIX_REPORT.md\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\tsrc/engine/__tests__/v3_regression.test.ts\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\n",
+            "stderr": ""
+          }
+        ],
+        "manual_evidence": null
+      }
+    },
+    {
+      "id": "R04",
+      "title": "Chuan bi Ho So Code Review Doc Lap Toan Dien va Push Commit",
+      "status": "DOING",
+      "accept": [
+        "Tai lieu phan biet ro Fixed/Partial/Chua test/Gioi han unit tests, 100% tests pass, build sach se, commit va push len nhanh fix"
+      ],
+      "tests": [
+        "npm test && npm run build"
+      ],
+      "manual": [],
+      "depends": [
+        "R03"
       ],
       "notes": [],
       "diagnoses": [],

@@ -290,3 +290,31 @@
 ### [V08] VERIFIED (2026-10-17T09:02:07Z)
 - **Test tự động:** 1 lệnh PASS
 
+### [V09] Ghi chú quyết định (2026-10-17T09:03:54Z)
+- **Vì sao (Why):** Chuan hoa tai lieu v3.0, xuat ban bao cao kiem toan toan dien va dong goi commit tren nhanh fix
+- **Thay đổi & Tác động (Change):** Cap nhat README.md, tao V3_DEEP_AUDIT_AND_FIX_REPORT.md voi 9 hang muc va commit git 2b38f13 tren nhanh fix/v2-quality-recovery
+
+### [V09] VERIFIED (2026-10-17T09:03:57Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [R01] Ghi chú quyết định (2026-10-17T09:08:32Z)
+- **Vì sao (Why):** Xac minh commit 2b38f13 tren nhanh fix/v2-quality-recovery ton tai day du va day len GitHub remote
+- **Thay đổi & Tác động (Change):** Chay git push -u origin fix/v2-quality-recovery thanh cong len https://github.com/ngoctuls2005-dev/S_ECH.git ma khong merge vao main hay force push
+
+### [R01] VERIFIED (2026-10-17T09:08:37Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [R02] Ghi chú quyết định (2026-10-17T09:13:23Z)
+- **Vì sao (Why):** Kiem chung hoi quy thuc te 8 kich ban bat buoc cua v3.0 ma khong sua test de doi pass gia tao
+- **Thay đổi & Tác động (Change):** Tao src/engine/__tests__/v3_regression.test.ts kiem chung toan dien: save v1 DJB2, export/reset/import v2 bao toan favorites va gacha history, crit/gacha counters that, khong cong lai thuong thanh tuu, combo va secret ribbit, offline checkpoint cap 8h, va gacha pity rate
+
+### [R02] VERIFIED (2026-10-17T09:13:31Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [R03] Ghi chú quyết định (2026-10-17T09:15:16Z)
+- **Vì sao (Why):** Sua trang thai van de B06 tu FIXED sang PARTIAL vi 25 anh Pillow van la placeholder chua phai anh that tach nen
+- **Thay đổi & Tác động (Change):** Cap nhat V3_DEEP_AUDIT_AND_FIX_REPORT.md: chuyen B06 ve PARTIAL va bo sung bang theo doi chi tiet 25 anh placeholder can thay the kem nguon, license va tinh trang nghiem thu
+
+### [R03] VERIFIED (2026-10-17T09:15:20Z)
+- **Test tự động:** 1 lệnh PASS
+
