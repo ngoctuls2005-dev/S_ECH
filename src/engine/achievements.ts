@@ -24,6 +24,7 @@ export interface AchievementEvaluationContext {
   mainFrogId?: string;
   totalCrits?: number;
   totalGachaPulls?: number;
+  lastClickCombo?: number;
 }
 
 export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
@@ -35,7 +36,7 @@ export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
     icon: 'Hand',
     category: 'click',
     target: 1,
-    rewardPoints: 100,
+    rewardPoints: 20,
     evalProgress: (ctx) => ({
       current: Math.min(1, ctx.totalClicks),
       isCompleted: ctx.totalClicks >= 1,
@@ -169,7 +170,7 @@ export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
     target: 10,
     rewardPoints: 1000,
     evalProgress: (ctx) => {
-      const crits = ctx.totalCrits || Math.floor(ctx.totalClicks * 0.1);
+      const crits = ctx.totalCrits ?? 0;
       return { current: Math.min(10, crits), isCompleted: crits >= 10 };
     },
   },
@@ -182,7 +183,7 @@ export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
     target: 100,
     rewardPoints: 10000,
     evalProgress: (ctx) => {
-      const crits = ctx.totalCrits || Math.floor(ctx.totalClicks * 0.1);
+      const crits = ctx.totalCrits ?? 0;
       return { current: Math.min(100, crits), isCompleted: crits >= 100 };
     },
   },
@@ -195,7 +196,7 @@ export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
     target: 1000,
     rewardPoints: 100000,
     evalProgress: (ctx) => {
-      const crits = ctx.totalCrits || Math.floor(ctx.totalClicks * 0.1);
+      const crits = ctx.totalCrits ?? 0;
       return { current: Math.min(1000, crits), isCompleted: crits >= 1000 };
     },
   },
@@ -290,7 +291,7 @@ export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
     target: 10,
     rewardPoints: 5000,
     evalProgress: (ctx) => {
-      const lvl = ctx.upgrades['magic_finger'] || 0;
+      const lvl = ctx.upgrades['divine_finger'] || 0;
       return { current: Math.min(10, lvl), isCompleted: lvl >= 10 };
     },
   },
@@ -450,11 +451,8 @@ export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
     target: 10,
     rewardPoints: 5000,
     evalProgress: (ctx) => {
-      // Ước tính dựa trên tổng số ếch sở hữu và mảnh
-      const totalFrogs = Object.keys(ctx.ownedFrogs).length;
-      const totalFrags = Object.values(ctx.ownedFrogs).reduce((acc, f) => acc + (f.fragments || 0), 0);
-      const estPulls = ctx.totalGachaPulls || (totalFrogs + Math.floor(totalFrags / 2));
-      return { current: Math.min(10, estPulls), isCompleted: estPulls >= 10 };
+      const pulls = ctx.totalGachaPulls ?? 0;
+      return { current: Math.min(10, pulls), isCompleted: pulls >= 10 };
     },
   },
   {
@@ -466,10 +464,8 @@ export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
     target: 100,
     rewardPoints: 100000,
     evalProgress: (ctx) => {
-      const totalFrogs = Object.keys(ctx.ownedFrogs).length;
-      const totalFrags = Object.values(ctx.ownedFrogs).reduce((acc, f) => acc + (f.fragments || 0), 0);
-      const estPulls = ctx.totalGachaPulls || (totalFrogs + Math.floor(totalFrags / 2));
-      return { current: Math.min(100, estPulls), isCompleted: estPulls >= 100 };
+      const pulls = ctx.totalGachaPulls ?? 0;
+      return { current: Math.min(100, pulls), isCompleted: pulls >= 100 };
     },
   },
 
@@ -578,7 +574,8 @@ export const ACHIEVEMENTS_DEFINITIONS: AchievementDefinition[] = [
     isSecret: true,
     evalProgress: (ctx) => {
       const isTargetMain = ctx.mainFrogId === 'mossy_frog' || ctx.mainFrogId === 'lotus_guardian_frog';
-      const isCompleted = isTargetMain && (ctx.highestCombo || 0) >= 20;
+      const eventCombo = ctx.lastClickCombo !== undefined ? ctx.lastClickCombo : 0;
+      const isCompleted = isTargetMain && eventCombo >= 20;
       return { current: isCompleted ? 1 : 0, isCompleted };
     },
   },

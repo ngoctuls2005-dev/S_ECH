@@ -10,10 +10,11 @@ import {
   getSpeciesDropRates,
   appendGachaHistory,
   pickFrogOfRarity,
+  getNextPullGuaranteedStatus,
 } from '../gacha';
 import { RARITY_CONFIG } from '../frogs';
 
-describe('Gacha System v2.0 & Multi-Pool Mechanism', () => {
+describe('Gacha System v3.0 Deep Audit & Pity Transparency', () => {
   describe('Cost and Point Deductions', () => {
     it('rejects gacha pull when player has insufficient points', () => {
       const resSingle = executeGacha(1, 400, {}, INITIAL_PITY_STATE);
@@ -75,7 +76,6 @@ describe('Gacha System v2.0 & Multi-Pool Mechanism', () => {
     });
 
     it('boosts rate-up species in target pool', () => {
-      // In Rung Mua, amazon_milk_frog should have higher rate than standard rare in Ao Sen
       const ratesAoSen = getSpeciesDropRates('ao_sen', {});
       const ratesRungMua = getSpeciesDropRates('rung_mua', {});
 
@@ -87,9 +87,22 @@ describe('Gacha System v2.0 & Multi-Pool Mechanism', () => {
       expect(milkRungMua!.dropChancePercent).toBeGreaterThan(milkAoSen!.dropChancePercent);
       expect(milkRungMua!.isRateUp).toBe(true);
     });
+
+    it('prioritizes unowned species within the same rarity tier (x1.4 weight)', () => {
+      // Compare 2 common frogs: green_frog (owned) vs brown_frog (unowned)
+      const owned = {
+        green_frog: { id: 'green_frog', level: 1, fragments: 0, unlockedAt: 0 },
+      };
+
+      const rates = getSpeciesDropRates('ao_sen', owned);
+      const greenRate = rates.find((r) => r.frog.id === 'green_frog')!;
+      const brownRate = rates.find((r) => r.frog.id === 'brown_frog')!;
+
+      expect(brownRate.dropChancePercent).toBeGreaterThan(greenRate.dropChancePercent);
+    });
   });
 
-  describe('Pity Guarantees', () => {
+  describe('Pity Guarantees and Drop Rate Transparency', () => {
     it('guarantees Rare or higher on 10th pull without Rare', () => {
       const pityAt9 = { sinceLastRare: 9, sinceLastEpic: 9, sinceLastLegendary: 9 };
       const { rarity, nextPity } = rollRarity(pityAt9, () => 0.0);
@@ -110,6 +123,44 @@ describe('Gacha System v2.0 & Multi-Pool Mechanism', () => {
       expect(RARITY_TIER[rarity]).toBeGreaterThanOrEqual(4);
       expect(nextPity.sinceLastLegendary).toBe(0);
     });
+
+    it('accurately reports guaranteed next pull status', () => {
+      const normalPity = { sinceLastRare: 5, sinceLastEpic: 15, sinceLastLegendary: 40 };
+      expect(getNextPullGuaranteedStatus(normalPity).isGuaranteed).toBe(false);
+
+      const rarePity = { sinceLastRare: 9, sinceLastEpic: 15, sinceLastLegendary: 40 };
+      const rareRes = getNextPullGuaranteedStatus(rarePity);
+      expect(rareRes.isGuaranteed).toBe(true);
+      expect(rareRes.minRarity).toBe('rare');
+
+      const epicPity = { sinceLastRare: 0, sinceLastEpic: 29, sinceLastLegendary: 40 };
+      const epicRes = getNextPullGuaranteedStatus(epicPity);
+      expect(epicRes.isGuaranteed).toBe(true);
+      expect(epicRes.minRarity).toBe('epic');
+
+      const legPity = { sinceLastRare: 0, sinceLastEpic: 0, sinceLastLegendary: 99 };
+      const legRes = getNextPullGuaranteedStatus(legPity);
+      expect(legRes.isGuaranteed).toBe(true);
+      expect(legRes.minRarity).toBe('legendary');
+    });
+
+    it('calculates guaranteed drop rates for next pull with Common set to 0% when Rare+ is guaranteed', () => {
+      const rarePity = { sinceLastRare: 9, sinceLastEpic: 15, sinceLastLegendary: 40 };
+      const pityRates = getSpeciesDropRates('ao_sen', {}, rarePity, true);
+
+      // Common species must have 0% drop chance in guaranteed pull
+      const commonSpecies = pityRates.filter((r) => r.frog.rarity === 'common');
+      for (const c of commonSpecies) {
+        expect(c.dropChancePercent).toBe(0);
+      }
+
+      // Rare, Epic, Legendary, Mythic must sum to ~100%
+      const nonCommonSum = pityRates
+        .filter((r) => r.frog.rarity !== 'common')
+        .reduce((sum, r) => sum + r.dropChancePercent, 0);
+      expect(nonCommonSum).toBeGreaterThan(99.0);
+      expect(nonCommonSum).toBeLessThan(101.0);
+    });
   });
 
   describe('Duplicate Frog & History Management', () => {
@@ -127,7 +178,25 @@ describe('Gacha System v2.0 & Multi-Pool Mechanism', () => {
       expect(history[0].poolId).toBe('ao_sen');
     });
 
-    it('caps gacha history at maximum 20 entries', () => {
+    it('converts duplicate frog into fragments accurately per rarity config', () => {
+      const owned = {
+        green_frog: { id: 'green_frog', level: 1, fragments: 0, unlockedAt: 0 },
+      };
+
+      // Mock RNG that always rolls green_frog
+      const res = executeGacha(1, 1000, owned, INITIAL_PITY_STATE, 'ao_sen', () => 0.0);
+      expect(res.success).toBe(true);
+      const pull = res.session!.pulls[0];
+      if (pull.species.id === 'green_frog') {
+        expect(pull.isNew).toBe(false);
+        expect(pull.fragmentsAdded).toBe(RARITY_CONFIG.common.duplicateFragments);
+        expect(res.session!.newOwnedFrogs['green_frog'].fragments).toBe(
+          RARITY_CONFIG.common.duplicateFragments
+        );
+      }
+    });
+
+    it('caps gacha history at maximum 20 entries with latest on top', () => {
       let history: any[] = [];
       const newBatch: any[] = [];
       for (let i = 0; i < 25; i++) {
@@ -145,7 +214,6 @@ describe('Gacha System v2.0 & Multi-Pool Mechanism', () => {
 
       history = appendGachaHistory(history, newBatch);
       expect(history.length).toBe(20);
-      // Newest entry must be on top
       expect(history[0].id).toBe('hist_0');
     });
   });

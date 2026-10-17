@@ -6,6 +6,7 @@ import {
   calculateCritStats,
   calculateComboMultiplier,
   formatNumber,
+  COMBO_TIMEOUT_MS,
 } from '../engine/clicker';
 import {
   calculatePointsPerSecond,
@@ -34,6 +35,7 @@ import {
 import {
   GameSaveData,
   DEFAULT_INITIAL_SAVE,
+  CURRENT_SAVE_VERSION,
   loadGameStateFromStorage,
   saveGameStateToStorage,
   exportSaveToString,
@@ -61,6 +63,8 @@ export interface GameStoreState {
   totalClicks: number;
   currentCombo: number;
   highestCombo: number;
+  totalCrits: number;
+  totalGachaPulls: number;
   lastClickTimestamp: number;
   upgradeLevels: Record<string, number>;
   ownedFrogs: Record<string, FrogOwned>;
@@ -68,6 +72,7 @@ export interface GameStoreState {
   pity: GachaPityState;
   unlockedAchievements: string[];
   settings: GameSettings;
+  favoriteFrogIds: string[];
   gachaHistory: GachaHistoryEntry[];
 
   // Runtime UI State
@@ -85,7 +90,7 @@ export interface GameStoreState {
   handleVisibilityChange: (isVisible: boolean, nowTimestamp?: number) => void;
   buyUpgrade: (id: string, mode: 'x1' | 'x10' | 'max') => boolean;
   pullGacha: (count: 1 | 10, poolType?: GachaPoolType) => GachaSessionResult | null;
-
+  toggleFavorite: (frogId: string) => void;
   setMainFrog: (id: string) => void;
   levelUpFrog: (id: string) => boolean;
   dismissOfflineReward: () => void;
@@ -111,7 +116,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     totalPointsEarned: initialLoaded.totalPointsEarned,
     totalClicks: initialLoaded.totalClicks,
     currentCombo: 0,
-    highestCombo: 0,
+    highestCombo: initialLoaded.highestCombo || 0,
+    totalCrits: initialLoaded.totalCrits || 0,
+    totalGachaPulls: initialLoaded.totalGachaPulls || 0,
     lastClickTimestamp: 0,
     upgradeLevels: initialLoaded.upgrades || {},
     ownedFrogs: initialLoaded.ownedFrogs || DEFAULT_INITIAL_SAVE.ownedFrogs,
@@ -119,14 +126,8 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     pity: initialLoaded.pity || INITIAL_PITY_STATE,
     unlockedAchievements: initialLoaded.unlockedAchievements || [],
     settings: initialLoaded.settings || DEFAULT_INITIAL_SAVE.settings,
-    gachaHistory: (() => {
-      try {
-        const stored = localStorage.getItem('s_ech_gacha_history');
-        return stored ? JSON.parse(stored) : [];
-      } catch {
-        return [];
-      }
-    })(),
+    favoriteFrogIds: initialLoaded.favoriteFrogIds || [],
+    gachaHistory: initialLoaded.gachaHistory || [],
 
     activeTab: 'pond',
 
@@ -180,11 +181,12 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       }
 
       const newTotalClicks = state.totalClicks + 1;
+      const newTotalCrits = state.totalCrits + (result.isCritical ? 1 : 0);
       const newPoints = state.points + result.earnedPoints;
       const newTotalPointsEarned = state.totalPointsEarned + result.earnedPoints;
       const highestCombo = Math.max(state.highestCombo, newCombo);
 
-      // Đánh giá thành tựu
+      // Đánh giá thành tựu với dữ liệu thống kê thực tế
       const evalRes = evaluateAchievements(
         {
           totalClicks: newTotalClicks,
@@ -193,7 +195,10 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           ownedFrogs: state.ownedFrogs,
           upgrades: state.upgradeLevels,
           highestCombo,
+          totalCrits: newTotalCrits,
+          totalGachaPulls: state.totalGachaPulls,
           mainFrogId: state.mainFrogId,
+          lastClickCombo: newCombo,
         },
         state.unlockedAchievements
       );
@@ -214,6 +219,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         points: finalPoints,
         totalPointsEarned: finalTotalPoints,
         totalClicks: newTotalClicks,
+        totalCrits: newTotalCrits,
         currentCombo: newCombo,
         highestCombo,
         lastClickTimestamp: newTimestamp,
@@ -236,16 +242,21 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!isVisible) {
         set({ lastActiveTimestamp: now });
         const saveData: GameSaveData = {
-          version: 1,
+          version: CURRENT_SAVE_VERSION,
           points: state.points,
           totalPointsEarned: state.totalPointsEarned,
           totalClicks: state.totalClicks,
+          highestCombo: state.highestCombo,
+          totalCrits: state.totalCrits,
+          totalGachaPulls: state.totalGachaPulls,
           upgrades: state.upgradeLevels,
           ownedFrogs: state.ownedFrogs,
           mainFrogId: state.mainFrogId,
           pity: state.pity,
           unlockedAchievements: state.unlockedAchievements,
           settings: state.settings,
+          favoriteFrogIds: state.favoriteFrogIds,
+          gachaHistory: state.gachaHistory,
           lastSavedTimestamp: now,
         };
         saveGameStateToStorage(saveData);
@@ -281,16 +292,21 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           lastActiveTimestamp: now,
         });
         const saveData: GameSaveData = {
-          version: 1,
+          version: CURRENT_SAVE_VERSION,
           points: newPoints,
           totalPointsEarned: newTotal,
           totalClicks: state.totalClicks,
+          highestCombo: state.highestCombo,
+          totalCrits: state.totalCrits,
+          totalGachaPulls: state.totalGachaPulls,
           upgrades: state.upgradeLevels,
           ownedFrogs: state.ownedFrogs,
           mainFrogId: state.mainFrogId,
           pity: state.pity,
           unlockedAchievements: state.unlockedAchievements,
           settings: state.settings,
+          favoriteFrogIds: state.favoriteFrogIds,
+          gachaHistory: state.gachaHistory,
           lastSavedTimestamp: now,
         };
         saveGameStateToStorage(saveData);
@@ -306,7 +322,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
 
       // Kiểm tra timeout combo
       let updatedCombo = state.currentCombo;
-      if (state.lastClickTimestamp > 0 && Date.now() - state.lastClickTimestamp > 2000 && state.currentCombo > 0) {
+      if (state.lastClickTimestamp > 0 && Date.now() - state.lastClickTimestamp > COMBO_TIMEOUT_MS && state.currentCombo > 0) {
         updatedCombo = 0;
       }
 
@@ -336,6 +352,8 @@ export const useGameStore = create<GameStoreState>((set, get) => {
             ownedFrogs: state.ownedFrogs,
             upgrades: state.upgradeLevels,
             highestCombo: state.highestCombo,
+            totalCrits: state.totalCrits,
+            totalGachaPulls: state.totalGachaPulls,
             pointsPerSecond: pps,
             mainFrogId: state.mainFrogId,
           },
@@ -392,6 +410,8 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           ownedFrogs: state.ownedFrogs,
           upgrades: result.newLevels,
           highestCombo: state.highestCombo,
+          totalCrits: state.totalCrits,
+          totalGachaPulls: state.totalGachaPulls,
           mainFrogId: state.mainFrogId,
         },
         state.unlockedAchievements
@@ -429,11 +449,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
 
       const session = res.session;
       const updatedHistory = appendGachaHistory(state.gachaHistory || [], session.newHistoryEntries);
-      try {
-        localStorage.setItem('s_ech_gacha_history', JSON.stringify(updatedHistory));
-      } catch {
-        // Ignore local storage error
-      }
+      const newTotalGachaPulls = state.totalGachaPulls + count;
 
       // Đánh giá thành tựu gacha & collection
       const evalRes = evaluateAchievements(
@@ -444,6 +460,8 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           ownedFrogs: session.newOwnedFrogs,
           upgrades: state.upgradeLevels,
           highestCombo: state.highestCombo,
+          totalCrits: state.totalCrits,
+          totalGachaPulls: newTotalGachaPulls,
           mainFrogId: state.mainFrogId,
         },
         state.unlockedAchievements
@@ -466,21 +484,64 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         totalPointsEarned: finalTotalPoints,
         ownedFrogs: session.newOwnedFrogs,
         pity: session.newPity,
+        totalGachaPulls: newTotalGachaPulls,
         gachaHistory: updatedHistory,
         unlockedAchievements: evalRes.achievements.filter((a) => a.isUnlocked).map((a) => a.id),
         newAchievementUnlocked: newlyUnlockedToast,
       });
 
-
       return session;
     },
 
+    toggleFavorite: (frogId: string) => {
+      set((state) => {
+        const next = state.favoriteFrogIds.includes(frogId)
+          ? state.favoriteFrogIds.filter((id) => id !== frogId)
+          : [...state.favoriteFrogIds, frogId];
+        return { favoriteFrogIds: next };
+      });
+    },
 
     setMainFrog: (id) => {
       const state = get();
       if (!state.ownedFrogs[id]) return;
       soundManager.playRibbit(1.1);
-      set({ mainFrogId: id });
+
+      // Đánh giá thành tựu khi đổi ếch chính
+      const evalRes = evaluateAchievements(
+        {
+          totalClicks: state.totalClicks,
+          totalPointsEarned: state.totalPointsEarned,
+          points: state.points,
+          ownedFrogs: state.ownedFrogs,
+          upgrades: state.upgradeLevels,
+          highestCombo: state.highestCombo,
+          totalCrits: state.totalCrits,
+          totalGachaPulls: state.totalGachaPulls,
+          mainFrogId: id,
+        },
+        state.unlockedAchievements
+      );
+
+      let finalPoints = state.points;
+      let finalTotalPoints = state.totalPointsEarned;
+      let newlyUnlockedToast = state.newAchievementUnlocked;
+      if (evalRes.newlyUnlockedIds.length > 0) {
+        soundManager.playAchievement();
+        newlyUnlockedToast = evalRes.newlyUnlockedIds[0];
+        if (evalRes.totalRewardsEarned > 0) {
+          finalPoints += evalRes.totalRewardsEarned;
+          finalTotalPoints += evalRes.totalRewardsEarned;
+        }
+      }
+
+      set({
+        mainFrogId: id,
+        points: finalPoints,
+        totalPointsEarned: finalTotalPoints,
+        unlockedAchievements: evalRes.achievements.filter((a) => a.isUnlocked).map((a) => a.id),
+        newAchievementUnlocked: newlyUnlockedToast,
+      });
     },
 
     levelUpFrog: (id) => {
@@ -492,11 +553,45 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!res.success) return false;
 
       soundManager.playUpgrade();
-      set({
-        ownedFrogs: {
-          ...state.ownedFrogs,
-          [id]: res.newFrog,
+      const updatedOwnedFrogs = {
+        ...state.ownedFrogs,
+        [id]: res.newFrog,
+      };
+
+      // Đánh giá thành tựu ngay lập tức khi thăng cấp ếch (ví dụ đạt cấp 5)
+      const evalRes = evaluateAchievements(
+        {
+          totalClicks: state.totalClicks,
+          totalPointsEarned: state.totalPointsEarned,
+          points: state.points,
+          ownedFrogs: updatedOwnedFrogs,
+          upgrades: state.upgradeLevels,
+          highestCombo: state.highestCombo,
+          totalCrits: state.totalCrits,
+          totalGachaPulls: state.totalGachaPulls,
+          mainFrogId: state.mainFrogId,
         },
+        state.unlockedAchievements
+      );
+
+      let finalPoints = state.points;
+      let finalTotalPoints = state.totalPointsEarned;
+      let newlyUnlockedToast = state.newAchievementUnlocked;
+      if (evalRes.newlyUnlockedIds.length > 0) {
+        soundManager.playAchievement();
+        newlyUnlockedToast = evalRes.newlyUnlockedIds[0];
+        if (evalRes.totalRewardsEarned > 0) {
+          finalPoints += evalRes.totalRewardsEarned;
+          finalTotalPoints += evalRes.totalRewardsEarned;
+        }
+      }
+
+      set({
+        ownedFrogs: updatedOwnedFrogs,
+        points: finalPoints,
+        totalPointsEarned: finalTotalPoints,
+        unlockedAchievements: evalRes.achievements.filter((a) => a.isUnlocked).map((a) => a.id),
+        newAchievementUnlocked: newlyUnlockedToast,
       });
       return true;
     },
@@ -532,16 +627,21 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     exportSave: () => {
       const state = get();
       const saveData: GameSaveData = {
-        version: 1,
+        version: CURRENT_SAVE_VERSION,
         points: state.points,
         totalPointsEarned: state.totalPointsEarned,
         totalClicks: state.totalClicks,
+        highestCombo: state.highestCombo,
+        totalCrits: state.totalCrits,
+        totalGachaPulls: state.totalGachaPulls,
         upgrades: state.upgradeLevels,
         ownedFrogs: state.ownedFrogs,
         mainFrogId: state.mainFrogId,
         pity: state.pity,
         unlockedAchievements: state.unlockedAchievements,
         settings: state.settings,
+        favoriteFrogIds: state.favoriteFrogIds,
+        gachaHistory: state.gachaHistory,
         lastSavedTimestamp: Date.now(),
       };
       return exportSaveToString(saveData);
@@ -562,12 +662,17 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         points: d.points,
         totalPointsEarned: d.totalPointsEarned,
         totalClicks: d.totalClicks,
+        highestCombo: d.highestCombo || 0,
+        totalCrits: d.totalCrits || 0,
+        totalGachaPulls: d.totalGachaPulls || 0,
         upgradeLevels: d.upgrades,
         ownedFrogs: d.ownedFrogs,
         mainFrogId: d.mainFrogId,
         pity: d.pity,
         unlockedAchievements: d.unlockedAchievements,
         settings: d.settings,
+        favoriteFrogIds: d.favoriteFrogIds || [],
+        gachaHistory: d.gachaHistory || [],
       });
 
       return { success: true };
@@ -584,12 +689,16 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         totalClicks: DEFAULT_INITIAL_SAVE.totalClicks,
         currentCombo: 0,
         highestCombo: 0,
+        totalCrits: 0,
+        totalGachaPulls: 0,
         upgradeLevels: {},
         ownedFrogs: DEFAULT_INITIAL_SAVE.ownedFrogs,
         mainFrogId: 'green_frog',
         pity: INITIAL_PITY_STATE,
         unlockedAchievements: [],
         settings: DEFAULT_INITIAL_SAVE.settings,
+        favoriteFrogIds: [],
+        gachaHistory: [],
         floatingTexts: [],
         activeTab: 'pond',
       });

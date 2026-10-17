@@ -8,6 +8,7 @@ import {
   GachaSessionResult,
   GachaPullResult,
   getSpeciesDropRates,
+  getNextPullGuaranteedStatus,
 } from '../engine/gacha';
 import { RARITY_CONFIG } from '../engine/frogs';
 import { formatNumber } from '../engine/clicker';
@@ -42,6 +43,7 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [skipAnim, setSkipAnim] = useState(false);
   const [showOdds, setShowOdds] = useState(false);
   const [showDetailedRates, setShowDetailedRates] = useState(false);
+  const [rateTableMode, setRateTableMode] = useState<'base' | 'next_pull'>('base');
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showTenPullConfirm, setShowTenPullConfirm] = useState(false);
   const [confirmTenPullSetting, setConfirmTenPullSetting] = useState(true);
@@ -62,11 +64,12 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   const poolConfig = GACHA_POOLS[selectedPool];
+  const guaranteedStatus = useMemo(() => getNextPullGuaranteedStatus(pity), [pity]);
 
-  // Calculate detailed drop rates for current pool
+  // Calculate detailed drop rates for current pool with pity support
   const detailedRates = useMemo(
-    () => getSpeciesDropRates(selectedPool, ownedFrogs),
-    [selectedPool, ownedFrogs]
+    () => getSpeciesDropRates(selectedPool, ownedFrogs, pity, rateTableMode === 'next_pull'),
+    [selectedPool, ownedFrogs, pity, rateTableMode]
   );
 
   const executePull = (count: 1 | 10) => {
@@ -547,16 +550,50 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </button>
             </div>
 
+            {/* Mode Selector Tabs */}
+            <div className="px-4 py-2 bg-slate-950/70 border-b border-slate-800 flex items-center gap-2">
+              <button
+                onClick={() => setRateTableMode('base')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  rateTableMode === 'base'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                Tỉ Lệ Cơ Bản Chuẩn
+              </button>
+              <button
+                onClick={() => setRateTableMode('next_pull')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  rateTableMode === 'next_pull'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                Tỉ Lệ Lượt Tiếp Theo (Theo Pity)
+              </button>
+            </div>
+
+            {/* Guaranteed Banner if applicable */}
+            {rateTableMode === 'next_pull' && guaranteedStatus.isGuaranteed && (
+              <div className="mx-4 mt-3 p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-2">
+                <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>{guaranteedStatus.description}</span>
+              </div>
+            )}
+
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {detailedRates.map(({ frog, dropChancePercent, isRateUp }) => {
                 const rarity = RARITY_CONFIG[frog.rarity];
                 return (
                   <div 
                     key={frog.id}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
-                      isRateUp 
-                        ? 'border-amber-500/50 bg-amber-950/20' 
-                        : 'border-slate-800 bg-slate-950/50'
+                    className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-colors ${
+                      dropChancePercent === 0 
+                        ? 'opacity-40 border-slate-800/40 bg-slate-950/20'
+                        : isRateUp 
+                          ? 'border-amber-500/50 bg-amber-950/20' 
+                          : 'border-slate-800 bg-slate-950/50'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -579,6 +616,12 @@ export const GachaModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Footnote notes */}
+            <div className="p-3 bg-slate-950/80 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
+              <p>• <strong>Rate-Up (x3 trọng số):</strong> Tăng tần suất xuất hiện của loài trong cùng bậc độ hiếm tại hồ này, không tự tăng xác suất tổng của bậc độ hiếm.</p>
+              <p>• <strong>Ưu tiên loài mới (x1.4 trọng số):</strong> Loài chưa sở hữu được tăng thêm 40% trọng số để hỗ trợ hoàn thành bộ sưu tập 40 loài.</p>
             </div>
           </div>
         </div>

@@ -159,4 +159,49 @@ describe('Frog Collection v2.0 & Real Assets System', () => {
       expect(previewMain).toBeDefined();
     });
   });
+
+  describe('Task B — Asset Quality & Honesty Audit', () => {
+    it('verifies all 40 frog images exist with valid size (between 10KB and 80KB)', () => {
+      for (const frog of FROG_SPECIES_LIST) {
+        const cleanPath = frog.image.replace(/^\//, '');
+        const fullPath = path.resolve(process.cwd(), 'public', cleanPath);
+        expect(fs.existsSync(fullPath)).toBe(true);
+        const stats = fs.statSync(fullPath);
+        const sizeKb = stats.size / 1024;
+        expect(sizeKb).toBeGreaterThan(10);
+        expect(sizeKb).toBeLessThan(80);
+      }
+    });
+
+    it('ensures mythic species are identified as fictional lore and not disguised as recognized biology', () => {
+      const mythicFrogs = FROG_SPECIES_LIST.filter((f) => f.rarity === 'mythic');
+      expect(mythicFrogs.length).toBe(5);
+
+      for (const frog of mythicFrogs) {
+        // Must clearly state fictional / creative edit nature in scientificName or credit
+        const isFictionalMarked = 
+          frog.scientificName?.includes('Biến thể hư cấu') ||
+          frog.scientificName?.includes('Sinh vật thần thoại') ||
+          frog.credit.source.includes('phái sinh') ||
+          frog.credit.source.includes('PLACEHOLDER');
+        expect(isFictionalMarked).toBe(true);
+      }
+    });
+
+    it('honestly marks v2 programmatic illustration assets as PLACEHOLDER in source credits', () => {
+      // 25 v2 frog species
+      const v1FrogIds = new Set([
+        'green_frog', 'brown_frog', 'tree_frog', 'red_eyed_frog', 'tomato_frog',
+        'rain_frog', 'pacman_frog', 'blue_poison_frog', 'glass_frog', 'mossy_frog',
+        'golden_frog', 'golden_dart_frog', 'king_frog', 'galaxy_frog', 'lotus_guardian_frog'
+      ]);
+
+      const v2Frogs = FROG_SPECIES_LIST.filter((f) => !v1FrogIds.has(f.id));
+      expect(v2Frogs.length).toBe(25);
+
+      for (const frog of v2Frogs) {
+        expect(frog.credit.source).toContain('PLACEHOLDER');
+      }
+    });
+  });
 });

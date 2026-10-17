@@ -220,24 +220,92 @@ export function pickFrogOfRarity(
   return pool[pool.length - 1];
 }
 
+export interface SpeciesDropRateItem {
+  frog: FrogSpecies;
+  dropChancePercent: number;
+  isRateUp: boolean;
+  tierBasePercent: number;
+}
+
 /**
- * Tính bảng tỉ lệ rơi % chính xác của từng loài theo pool đang chọn
+ * Kiểm tra trạng thái bảo đảm của lượt quay tiếp theo dựa theo Pity hiện tại
+ */
+export function getNextPullGuaranteedStatus(pity: GachaPityState): {
+  isGuaranteed: boolean;
+  minRarity?: Rarity;
+  description?: string;
+} {
+  if (pity.sinceLastLegendary >= 99) {
+    return {
+      isGuaranteed: true,
+      minRarity: 'legendary',
+      description: 'Lượt tiếp theo BẢO ĐẢM Huyền Thoại (Legendary) hoặc Thần Thoại (Mythic)!',
+    };
+  }
+  if (pity.sinceLastEpic >= 29) {
+    return {
+      isGuaranteed: true,
+      minRarity: 'epic',
+      description: 'Lượt tiếp theo BẢO ĐẢM Sử Thi (Epic) trở lên!',
+    };
+  }
+  if (pity.sinceLastRare >= 9) {
+    return {
+      isGuaranteed: true,
+      minRarity: 'rare',
+      description: 'Lượt tiếp theo BẢO ĐẢM Hiếm (Rare) trở lên!',
+    };
+  }
+  return { isGuaranteed: false };
+}
+
+/**
+ * Tính bảng tỉ lệ rơi % chính xác của từng loài theo pool đang chọn:
+ * - Hỗ trợ tính theo tỉ lệ cơ bản hoặc theo trạng thái Pity bảo đảm của lượt tiếp theo
+ * - Áp dụng trọng số Rate-Up x3 cho loài trong pool và x1.4 cho loài chưa sở hữu
  */
 export function getSpeciesDropRates(
   poolType: GachaPoolType = 'ao_sen',
-  ownedFrogs: Record<string, FrogOwned> = {}
-): { frog: FrogSpecies; dropChancePercent: number; isRateUp: boolean }[] {
+  ownedFrogs: Record<string, FrogOwned> = {},
+  currentPity?: GachaPityState,
+  considerPity: boolean = false
+): SpeciesDropRateItem[] {
   const poolConfig = GACHA_POOLS[poolType] || GACHA_POOLS.ao_sen;
   const rateUpSet = new Set(poolConfig.rateUpFrogIds);
-  const result: { frog: FrogSpecies; dropChancePercent: number; isRateUp: boolean }[] = [];
+  const result: SpeciesDropRateItem[] = [];
 
   const rarities: Rarity[] = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+
+  // Xác định các bậc được phép xuất hiện (nếu considerPity = true)
+  let eligibleRarities = rarities;
+  if (considerPity && currentPity) {
+    let minTier = 1;
+    if (currentPity.sinceLastLegendary >= 99) minTier = 4;
+    else if (currentPity.sinceLastEpic >= 29) minTier = 3;
+    else if (currentPity.sinceLastRare >= 9) minTier = 2;
+    eligibleRarities = rarities.filter((r) => RARITY_TIER[r] >= minTier);
+  }
+
+  const eligibleTotalWeight = eligibleRarities.reduce((sum, r) => sum + RARITY_CONFIG[r].gachaWeight, 0);
 
   for (const r of rarities) {
     const frogsInTier = FROG_SPECIES_LIST.filter((f) => f.rarity === r);
     if (frogsInTier.length === 0) continue;
 
-    const tierGachaWeight = RARITY_CONFIG[r].gachaWeight; // e.g. 50, 28, 15, 6, 1
+    // Nếu bậc này không nằm trong eligible do Pity bảo đảm bậc cao hơn
+    if (!eligibleRarities.includes(r)) {
+      for (const frog of frogsInTier) {
+        result.push({
+          frog,
+          dropChancePercent: 0,
+          isRateUp: rateUpSet.has(frog.id),
+          tierBasePercent: 0,
+        });
+      }
+      continue;
+    }
+
+    const tierGachaWeight = (RARITY_CONFIG[r].gachaWeight / eligibleTotalWeight) * 100;
     const weights = frogsInTier.map((frog) => {
       let w = 1.0;
       if (rateUpSet.has(frog.id)) w *= 3.0;
@@ -255,6 +323,7 @@ export function getSpeciesDropRates(
         frog,
         dropChancePercent: finalPercent,
         isRateUp: rateUpSet.has(frog.id),
+        tierBasePercent: Number(tierGachaWeight.toFixed(2)),
       });
     }
   }

@@ -145,4 +145,25 @@ describe('Upgrade System', () => {
       expect(resSanc.newLevels['frog_sanctuary']).toBe(1);
     });
   });
+
+  describe('Task H — Upgrade Configuration & Engine Architecture Cross-Validation', () => {
+    it('verifies all 18 upgrades have verified effects and no dead upgrades exist', () => {
+      const upgradeIds = UPGRADES_CONFIG.map((u) => u.id);
+      expect(upgradeIds.length).toBe(18);
+
+      // Verify each upgrade has valid effectType and positive effectValue
+      for (const u of UPGRADES_CONFIG) {
+        expect(['click_flat', 'idle_flat', 'crit_chance_flat', 'crit_multiplier_flat', 'combo_bonus_flat', 'multiplier_percent']).toContain(u.effectType);
+        expect(u.effectValue).toBeGreaterThan(0);
+        expect(u.basePrice).toBeGreaterThan(0);
+      }
+    });
+
+    it('rejects purchases for non-existent upgrade IDs gracefully', () => {
+      const invalidRes = purchaseUpgrade('non_existent_upgrade_xyz', 'x1', 999999, {});
+      expect(invalidRes.success).toBe(false);
+      expect(invalidRes.cost).toBe(0);
+      expect(invalidRes.levelsBought).toBe(0);
+    });
+  });
 });

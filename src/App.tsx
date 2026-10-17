@@ -11,7 +11,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { calculateOfflineReward, calculatePointsPerSecond } from './engine/idle';
 import { calculateActiveFrogBuffs, RARITY_CONFIG } from './engine/frogs';
 import { calculateClickPower, calculateCritStats, formatNumber } from './engine/clicker';
-import { saveGameStateToStorage, shouldSaveAutoSnapshot } from './engine/save';
+import { saveGameStateToStorage, shouldSaveAutoSnapshot, CURRENT_SAVE_VERSION } from './engine/save';
 import { ACHIEVEMENTS_DEFINITIONS } from './engine/achievements';
 import {
   Sparkles,
@@ -103,16 +103,21 @@ export default function App() {
 
       const state = useGameStore.getState();
       saveGameStateToStorage({
-        version: 1,
+        version: CURRENT_SAVE_VERSION,
         points: state.points,
         totalPointsEarned: state.totalPointsEarned,
         totalClicks: state.totalClicks,
+        highestCombo: state.highestCombo,
+        totalCrits: state.totalCrits,
+        totalGachaPulls: state.totalGachaPulls,
         upgrades: state.upgradeLevels,
         ownedFrogs: state.ownedFrogs,
         mainFrogId: state.mainFrogId,
         pity: state.pity,
         unlockedAchievements: state.unlockedAchievements,
         settings: state.settings,
+        favoriteFrogIds: state.favoriteFrogIds,
+        gachaHistory: state.gachaHistory,
         lastSavedTimestamp: Date.now(),
       });
     };

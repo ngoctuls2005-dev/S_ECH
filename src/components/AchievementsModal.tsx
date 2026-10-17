@@ -28,6 +28,8 @@ export const AchievementsModal: React.FC<{ onClose: () => void }> = ({ onClose }
   const ownedFrogs = useGameStore((s) => s.ownedFrogs);
   const upgradeLevels = useGameStore((s) => s.upgradeLevels);
   const highestCombo = useGameStore((s) => s.highestCombo);
+  const totalCrits = useGameStore((s) => s.totalCrits);
+  const totalGachaPulls = useGameStore((s) => s.totalGachaPulls);
   const mainFrogId = useGameStore((s) => s.mainFrogId);
 
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -116,7 +118,7 @@ export const AchievementsModal: React.FC<{ onClose: () => void }> = ({ onClose }
             const isUnlocked = unlockedSet.has(item.id);
             const isSecretLocked = !isUnlocked && item.isSecret;
 
-            // Truyền upgrades thực tế từ Zustand (Khắc phục triệt để bug upgrades: {})
+            // Truyền upgrades và counters thực tế từ Zustand (Khắc phục triệt để bug upgrades: {})
             const { current } = item.evalProgress({
               totalClicks,
               totalPointsEarned,
@@ -124,6 +126,8 @@ export const AchievementsModal: React.FC<{ onClose: () => void }> = ({ onClose }
               ownedFrogs,
               upgrades: upgradeLevels,
               highestCombo,
+              totalCrits,
+              totalGachaPulls,
               pointsPerSecond,
               mainFrogId,
             });

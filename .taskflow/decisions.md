@@ -227,3 +227,66 @@
 ### [E06] VERIFIED (2026-10-16T09:50:10Z)
 - **Test tự động:** 1 lệnh PASS
 
+### [E07] Ghi chú quyết định (2026-10-16T09:52:20Z)
+- **Vì sao (Why):** Cap nhat README.md tong quan v2.0, commit toan bo ma nguon va day thanh cong len GitHub repository https://github.com/ngoctuls2005-dev/S_ECH.git
+- **Thay đổi & Tác động (Change):** README.md, git commit 96b910c, git push origin main
+
+### [E07] VERIFIED (2026-10-16T09:52:26Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [V01] Ghi chú quyết định (2026-10-16T10:09:38Z)
+- **Vì sao (Why):** Xac nhan HEAD SHA 96b910c, tao nhanh rieng fix/v2-quality-recovery, kiem tra 105 tests pass va build status, lap bao cao V3_AUDIT_BASELINE.md
+- **Thay đổi & Tác động (Change):** V3_AUDIT_BASELINE.md, branch fix/v2-quality-recovery
+
+### [V01] VERIFIED (2026-10-16T10:09:42Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [V02] Ghi chú quyết định (2026-10-16T10:16:53Z)
+- **Vì sao (Why):** Sua triet de checksum DJB2 cho v1 va hash 32-bit cho v2 trong importSaveFromString; thong nhat nguon du lieu favoriteFrogIds va gachaHistory vao saveGameStateToStorage; bo sung luu tru highestCombo, totalCrits, totalGachaPulls; don dep legacy keys khi reset
+- **Thay đổi & Tác động (Change):** save.ts, gameStore.ts, CollectionModal.tsx, App.tsx, achievements.ts, save.test.ts
+
+### [V02] VERIFIED (2026-10-16T10:17:00Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [V03] Ghi chú quyết định (2026-10-16T10:20:39Z)
+- **Vì sao (Why):** Sua dem crits that bang ctx.totalCrits ?? 0 loai bo uoc tinh 10%; dem gacha pulls that bang ctx.totalGachaPulls ?? 0; sua ID nang cap divine_finger trong upgrade_magic_finger_10; kiem tra bang chung su kien dong thoi lastClickCombo >= 20 cho secret_ribbit_master; bao dam thuong dung 1 lan va cap nhat AchievementsModal
+- **Thay đổi & Tác động (Change):** achievements.ts, AchievementsModal.tsx, achievements.test.ts
+
+### [V03] VERIFIED (2026-10-16T10:20:47Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [V04] Ghi chú quyết định (2026-10-16T10:26:05Z)
+- **Vì sao (Why):** Kiem toan toan bo 40 loai ech: xac minh 12 loai that tach nen, 3 loai mythic phai sinh va 25 loai v2 dung Pillow code; danh dau trung thuc PLACEHOLDER cho cac anh minh hoa vector tam thoi de khong ghi sai tac gia Wikimedia; chuan hoa danh phap Mythic khong gia mao sinh hoc cong nhan; cap nhat CREDITS.md bang thong ke day du 40 loai
+- **Thay đổi & Tác động (Change):** CREDITS.md, frogs.ts, frogs.test.ts
+
+### [V04] VERIFIED (2026-10-16T10:26:15Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [V05] Ghi chú quyết định (2026-10-16T10:31:20Z)
+- **Vì sao (Why):** Nang cap getSpeciesDropRates ho tro tinh xac suat theo trang thai Pity bao dam cua luot tiep theo; them ham getNextPullGuaranteedStatus; cap nhat GachaModal voi tab chuyen doi ti le co ban va pity, banner bao dam ro rang va chu thich minh bach ve rate-up x3 va uu tien loai moi x1.4
+- **Thay đổi & Tác động (Change):** gacha.ts, GachaModal.tsx, gacha.test.ts
+
+### [V05] VERIFIED (2026-10-16T10:31:30Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [V06] Ghi chú quyết định (2026-10-16T10:34:14Z)
+- **Vì sao (Why):** Dong bo hang so COMBO_TIMEOUT_MS = 1800ms tu clicker.ts sang gameStore.ts tick giup loai bo hoan toan hien tuong 200ms combo zombie; xac thuc cheo 100% 18 nang cap trong UPGRADES_CONFIG deu co anh huong tinh toan trong clicker.ts va idle.ts, khong co dead upgrade hay ID gia
+- **Thay đổi & Tác động (Change):** gameStore.ts, upgrade.test.ts
+
+### [V06] VERIFIED (2026-10-16T10:34:23Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [V07] Ghi chú quyết định (2026-10-17T08:53:39Z)
+- **Vì sao (Why):** Can bang pacing early game va mo phong toan dien 5 playstyles cung multi-horizon an toan
+- **Thay đổi & Tác động (Change):** Chinh reward first_touch ve 20 diem trong achievements.ts, mo rong 10 tests mo phong kinh te trong balance.test.ts
+
+### [V07] VERIFIED (2026-10-17T08:53:47Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [V08] Ghi chú quyết định (2026-10-17T09:01:51Z)
+- **Vì sao (Why):** Kiem thu hoi quy toan bo he thong sau cac dot fix va xac nhan production build khong loi TypeScript hoac Vite
+- **Thay đổi & Tác động (Change):** Chay 10 test suites (128 tests) dat 100% pass, fix type checking isCritical trong balance.test.ts va build production thanh cong
+
+### [V08] VERIFIED (2026-10-17T09:02:07Z)
+- **Test tự động:** 1 lệnh PASS
+

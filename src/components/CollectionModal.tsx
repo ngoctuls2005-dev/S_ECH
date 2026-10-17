@@ -26,8 +26,6 @@ import {
   Sparkles
 } from 'lucide-react';
 
-const FAVORITES_STORAGE_KEY = 's_ech_favorite_frogs';
-
 export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const ownedFrogs = useGameStore((s) => s.ownedFrogs);
   const mainFrogId = useGameStore((s) => s.mainFrogId);
@@ -35,35 +33,15 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
   const levelUpFrog = useGameStore((s) => s.levelUpFrog);
   const upgradeLevels = useGameStore((s) => s.upgradeLevels);
 
+  const favoriteFrogIds = useGameStore((s) => s.favoriteFrogIds);
+  const toggleFavorite = useGameStore((s) => s.toggleFavorite);
+
   // States
   const [searchQuery, setSearchQuery] = useState('');
   const [rarityFilter, setRarityFilter] = useState<string>('all');
   const [buffFilter, setBuffFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'rarity_desc' | 'rarity_asc' | 'level_desc' | 'name' | 'favorite_first'>('favorite_first');
   const [selectedDetailFrog, setSelectedDetailFrog] = useState<FrogSpecies | null>(null);
-
-  // Favorites state persisted in localStorage
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem(FAVORITES_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const toggleFavorite = (frogId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFavorites((prev) => {
-      const next = prev.includes(frogId) ? prev.filter((id) => id !== frogId) : [...prev, frogId];
-      try {
-        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // Ignore storage errors
-      }
-      return next;
-    });
-  };
 
   const ownedCount = Object.keys(ownedFrogs).length;
 
@@ -118,8 +96,8 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
 
       return true;
     }).sort((a, b) => {
-      const isFavA = favorites.includes(a.id);
-      const isFavB = favorites.includes(b.id);
+      const isFavA = favoriteFrogIds.includes(a.id);
+      const isFavB = favoriteFrogIds.includes(b.id);
       const ownedA = ownedFrogs[a.id];
       const ownedB = ownedFrogs[b.id];
 
@@ -147,7 +125,7 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
       // Default: rarity_desc
       return rarityRank[b.rarity] - rarityRank[a.rarity];
     });
-  }, [searchQuery, rarityFilter, buffFilter, sortBy, favorites, ownedFrogs]);
+  }, [searchQuery, rarityFilter, buffFilter, sortBy, favoriteFrogIds, ownedFrogs]);
 
   // Preview impact calculator when switching to target frog
   const getPreviewDelta = (targetFrogId: string) => {
@@ -327,7 +305,7 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
             filteredAndSortedFrogs.map((frog) => {
               const owned = ownedFrogs[frog.id];
               const isMain = mainFrogId === frog.id;
-              const isFav = favorites.includes(frog.id);
+              const isFav = favoriteFrogIds.includes(frog.id);
               const rarity = RARITY_CONFIG[frog.rarity];
               const reqFragments = owned ? getRequiredFragmentsForLevel(owned.level) : 5;
               const canLevel = owned ? canLevelUpFrog(owned) : false;
@@ -368,7 +346,10 @@ export const CollectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                         <Info className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={(e) => toggleFavorite(frog.id, e)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(frog.id);
+                        }}
                         className={`p-1 rounded-md transition-colors ${
                           isFav ? 'text-amber-400 hover:text-amber-300' : 'text-slate-500 hover:text-slate-300'
                         }`}
