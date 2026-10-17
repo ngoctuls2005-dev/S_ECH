@@ -315,27 +315,108 @@ export function validateSaveData(data: any): { valid: boolean; error?: string; c
   return { valid: true, cleanData };
 }
 
-let isAutoSaveBlockedDueToFailedQuarantine = false;
+export type SaveRecoveryStatus = 'healthy' | 'recovered-from-v1' | 'recovery-pending' | 'quarantine-failed';
 
-export function isSaveStorageBlocked(): boolean {
-  return isAutoSaveBlockedDueToFailedQuarantine;
+export interface SaveRecoveryInfo {
+  status: SaveRecoveryStatus;
+  reason?: string;
+  corruptedRaw?: string | null;
+  quarantineKey?: string | null;
+  timestamp: number;
 }
 
-export function resetSaveStorageBlock(): void {
-  isAutoSaveBlockedDueToFailedQuarantine = false;
+export interface SaveSessionContext {
+  isAutoSaveBlocked: boolean;
+  recoveryInfo: SaveRecoveryInfo;
+}
+
+export function createDefaultSaveSessionContext(): SaveSessionContext {
+  return {
+    isAutoSaveBlocked: false,
+    recoveryInfo: {
+      status: 'healthy',
+      timestamp: Date.now(),
+    },
+  };
+}
+
+let globalSaveSessionContext: SaveSessionContext = createDefaultSaveSessionContext();
+
+export function getGlobalSaveSessionContext(): SaveSessionContext {
+  return globalSaveSessionContext;
+}
+
+export function resetGlobalSaveSessionContext(): void {
+  globalSaveSessionContext = createDefaultSaveSessionContext();
+}
+
+export function isSaveStorageBlocked(context?: SaveSessionContext): boolean {
+  return (context ?? globalSaveSessionContext).isAutoSaveBlocked;
+}
+
+export function resetSaveStorageBlock(context?: SaveSessionContext): void {
+  const ctx = context ?? globalSaveSessionContext;
+  ctx.isAutoSaveBlocked = false;
+  ctx.recoveryInfo = { status: 'healthy', timestamp: Date.now() };
+}
+
+export function getSaveRecoveryInfo(context?: SaveSessionContext): SaveRecoveryInfo {
+  return (context ?? globalSaveSessionContext).recoveryInfo;
+}
+
+export function getCorruptedSaveRaw(customStorage?: Storage, context?: SaveSessionContext): string | null {
+  const ctx = context ?? globalSaveSessionContext;
+  if (ctx.recoveryInfo.corruptedRaw) {
+    return ctx.recoveryInfo.corruptedRaw;
+  }
+  const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
+  if (!storage) return null;
+  if (ctx.recoveryInfo.quarantineKey) {
+    return storage.getItem(ctx.recoveryInfo.quarantineKey);
+  }
+  return storage.getItem(CORRUPTED_BACKUP_KEY);
+}
+
+export interface SaveStorageOptions {
+  isManualUserResolution?: boolean;
 }
 
 /**
  * Lưu vào LocalStorage / Storage
  */
-export function saveGameStateToStorage(state: GameSaveData, customStorage?: Storage): boolean {
+export function saveGameStateToStorage(
+  state: GameSaveData,
+  customStorage?: Storage,
+  context?: SaveSessionContext,
+  options?: SaveStorageOptions
+): boolean {
   try {
     const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
     if (!storage) return false;
 
-    if (isAutoSaveBlockedDueToFailedQuarantine) {
-      console.warn('Ghi lưu trữ bị khóa để bảo vệ bản sao lưu V2 bị hỏng chưa được cách ly an toàn.');
+    const ctx = context ?? globalSaveSessionContext;
+    if (ctx.isAutoSaveBlocked && !options?.isManualUserResolution) {
+      console.warn('Ghi lưu trữ bị khóa để bảo vệ bản sao lưu hoặc phiên phục hồi đang chờ:', ctx.recoveryInfo.status);
       return false;
+    }
+
+    // Bảo vệ xung đột đa tab: Không ghi đè nếu storage đang chứa bản lưu mới hơn từ tab khác (trừ khi là manual user resolution)
+    if (!options?.isManualUserResolution) {
+      try {
+        const currentRaw = storage.getItem(STORAGE_KEY);
+        if (currentRaw !== null) {
+          const currentParsed = JSON.parse(currentRaw);
+          if (
+            typeof currentParsed?.lastSavedTimestamp === 'number' &&
+            currentParsed.lastSavedTimestamp > (state.lastSavedTimestamp ?? 0)
+          ) {
+            console.warn('Phát hiện bản lưu trên storage mới hơn phiên hiện tại (đa tab), bỏ qua lần ghi tự động cũ.');
+            return false;
+          }
+        }
+      } catch {
+        // Bỏ qua lỗi parse của currentRaw để logic phục hồi xử lý
+      }
     }
 
     const toSave: GameSaveData = {
@@ -344,6 +425,13 @@ export function saveGameStateToStorage(state: GameSaveData, customStorage?: Stor
       lastSavedTimestamp: Date.now(),
     };
     storage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+
+    // Nếu đây là giải quyết thủ công hợp lệ từ người dùng, gỡ bỏ khóa an toàn
+    if (options?.isManualUserResolution) {
+      ctx.isAutoSaveBlocked = false;
+      ctx.recoveryInfo = { status: 'healthy', timestamp: Date.now() };
+    }
+
     return true;
   } catch (e: any) {
     if (e?.name === 'QuotaExceededError' || e?.code === 22) {
@@ -358,78 +446,175 @@ export function saveGameStateToStorage(state: GameSaveData, customStorage?: Stor
 /**
  * Nạp từ LocalStorage / Storage (Hỗ trợ fallback v1 sang v2 khi v2 hỏng)
  */
-export function loadGameStateFromStorage(customStorage?: Storage): GameSaveData {
+export function loadGameStateFromStorage(
+  customStorage?: Storage,
+  context?: SaveSessionContext
+): GameSaveData {
+  const ctx = context ?? globalSaveSessionContext;
   try {
     const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
-    if (!storage) return DEFAULT_INITIAL_SAVE;
+    if (!storage) {
+      ctx.isAutoSaveBlocked = false;
+      ctx.recoveryInfo = { status: 'healthy', timestamp: Date.now() };
+      return DEFAULT_INITIAL_SAVE;
+    }
 
     let v2CorruptedRaw: string | null = null;
+    let v2CorruptedReason: string | undefined = undefined;
 
-    // 1. Thử nạp bản lưu v2
+    // 1. Thử nạp bản lưu v2 (kiểm tra rawV2 !== null để bao quát cả chuỗi rỗng)
     const rawV2 = storage.getItem(STORAGE_KEY);
-    if (rawV2) {
+    if (rawV2 !== null) {
       try {
         const parsedV2 = JSON.parse(rawV2);
         const validationV2 = validateSaveData(parsedV2);
         if (validationV2.valid && validationV2.cleanData) {
-          isAutoSaveBlockedDueToFailedQuarantine = false;
+          ctx.isAutoSaveBlocked = false;
+          ctx.recoveryInfo = { status: 'healthy', timestamp: Date.now() };
           return validationV2.cleanData;
         }
         console.warn('Dữ liệu save V2 không hợp lệ, thử khôi phục từ legacy V1...', validationV2.error);
         v2CorruptedRaw = rawV2;
+        v2CorruptedReason = validationV2.error;
       } catch (e) {
         console.warn('Lỗi phân tích JSON save V2, thử khôi phục từ legacy V1...', e);
         v2CorruptedRaw = rawV2;
+        v2CorruptedReason = (e as Error)?.message || 'Lỗi phân tích cú pháp JSON';
+      }
+    }
+
+    // Nếu V2 có dữ liệu nhưng bị hỏng -> QUARANTINE NGAY LẬP TỨC TRƯỚC KHI XÉT V1
+    let quarantineKey: string | null = null;
+    let quarantineSucceeded = false;
+    if (v2CorruptedRaw !== null) {
+      try {
+        let targetBackupKey = CORRUPTED_BACKUP_KEY;
+        const existingBackup = storage.getItem(CORRUPTED_BACKUP_KEY);
+        // Kiểm tra existingBackup !== null để không bỏ sót chuỗi rỗng ""
+        if (existingBackup !== null && existingBackup !== v2CorruptedRaw) {
+          let counter = 0;
+          do {
+            targetBackupKey = `${CORRUPTED_BACKUP_KEY}_${Date.now()}${counter ? `_${counter}` : ''}`;
+            counter++;
+          } while (
+            storage.getItem(targetBackupKey) !== null &&
+            storage.getItem(targetBackupKey) !== v2CorruptedRaw
+          );
+        }
+        storage.setItem(targetBackupKey, v2CorruptedRaw);
+        if (storage.getItem(targetBackupKey) === v2CorruptedRaw) {
+          quarantineKey = targetBackupKey;
+          quarantineSucceeded = true;
+        }
+      } catch (backupErr) {
+        console.warn('Không thể tạo quarantine backup cho V2 hỏng:', backupErr);
+        quarantineSucceeded = false;
       }
     }
 
     // 2. Fallback nạp legacy v1 nếu v2 không có hoặc bị hỏng
-    const rawV1 = storage.getItem(LEGACY_STORAGE_KEY);
-    if (rawV1) {
+    let v1ValidData: GameSaveData | null = null;
+    let rawV1: string | null = null;
+    try {
+      rawV1 = storage.getItem(LEGACY_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Lỗi khi đọc LEGACY_STORAGE_KEY:', e);
+    }
+
+    if (rawV1 !== null) {
       try {
         const parsedV1 = JSON.parse(rawV1);
         const validationV1 = validateSaveData(parsedV1);
         if (validationV1.valid && validationV1.cleanData) {
-          console.info('Khôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.');
-
-          // Nếu có chuỗi V2 bị hỏng, tiến hành quarantine backup an toàn trước khi thay thế
-          let canSafelyOverwrite = false;
-          if (v2CorruptedRaw) {
-            try {
-              let targetBackupKey = CORRUPTED_BACKUP_KEY;
-              const existingBackup = storage.getItem(CORRUPTED_BACKUP_KEY);
-              if (existingBackup && existingBackup !== v2CorruptedRaw) {
-                targetBackupKey = `${CORRUPTED_BACKUP_KEY}_${Date.now()}`;
-              }
-              storage.setItem(targetBackupKey, v2CorruptedRaw);
-
-              // Xác nhận chính xác nội dung backup trên storage phải khớp chuỗi v2CorruptedRaw hiện tại
-              canSafelyOverwrite = storage.getItem(targetBackupKey) === v2CorruptedRaw;
-            } catch (backupErr) {
-              console.warn('Không thể tạo quarantine backup cho V2 hỏng, dừng ghi đè STORAGE_KEY:', backupErr);
-              canSafelyOverwrite = false;
-            }
-          } else {
-            canSafelyOverwrite = true;
-          }
-
-          if (canSafelyOverwrite) {
-            isAutoSaveBlockedDueToFailedQuarantine = false;
-            saveGameStateToStorage(validationV1.cleanData, storage);
-          } else {
-            // Khóa mọi lần autosave tiếp theo để bảo vệ chuỗi V2 gốc chưa được backup
-            isAutoSaveBlockedDueToFailedQuarantine = true;
-          }
-          return validationV1.cleanData;
+          v1ValidData = validationV1.cleanData;
         }
       } catch (e) {
         console.error('Lỗi khi phân tích legacy V1:', e);
       }
     }
 
+    // 3. Phân nhánh xử lý phục hồi
+    if (v1ValidData) {
+      console.info('Khôi phục thành công từ bản lưu Legacy V1, tự động nâng cấp lên V2.');
+      if (v2CorruptedRaw !== null) {
+        if (quarantineSucceeded) {
+          // Kiểm tra lại STORAGE_KEY trước khi ghi đè để tránh race condition với tab khác
+          const recheckV2 = storage.getItem(STORAGE_KEY);
+          if (recheckV2 !== v2CorruptedRaw) {
+            console.warn('STORAGE_KEY đã bị thay đổi bởi phiên khác trước khi nâng cấp V1, dừng ghi đè.');
+            ctx.isAutoSaveBlocked = true;
+            return v1ValidData;
+          }
+
+          // Đã sao lưu an toàn V2 hỏng, an tâm nâng cấp V1 lên STORAGE_KEY
+          ctx.isAutoSaveBlocked = false;
+          ctx.recoveryInfo = {
+            status: 'recovered-from-v1',
+            reason: v2CorruptedReason,
+            corruptedRaw: v2CorruptedRaw,
+            quarantineKey,
+            timestamp: Date.now(),
+          };
+          saveGameStateToStorage(v1ValidData, storage, ctx);
+          return v1ValidData;
+        } else {
+          // Quarantine thất bại: KHÔNG ghi đè STORAGE_KEY, khóa autosave
+          ctx.isAutoSaveBlocked = true;
+          ctx.recoveryInfo = {
+            status: 'quarantine-failed',
+            reason: 'V2 bị hỏng và không thể tạo bản sao lưu cách ly do lỗi storage.',
+            corruptedRaw: v2CorruptedRaw,
+            quarantineKey: null,
+            timestamp: Date.now(),
+          };
+          return v1ValidData;
+        }
+      } else {
+        // Không có V2 nào tồn tại từ trước, nâng cấp V1 lên V2 bình thường
+        ctx.isAutoSaveBlocked = false;
+        ctx.recoveryInfo = { status: 'recovered-from-v1', timestamp: Date.now() };
+        saveGameStateToStorage(v1ValidData, storage, ctx);
+        return v1ValidData;
+      }
+    }
+
+    // 4. Nếu V1 cũng hỏng hoặc không tồn tại:
+    if (v2CorruptedRaw !== null) {
+      // V2 hỏng và không có bản lưu V1 hợp lệ -> CHẾ ĐỘ PHỤC HỒI CHỜ XỬ LÝ (RECOVERY PENDING)
+      ctx.isAutoSaveBlocked = true;
+      if (quarantineSucceeded) {
+        ctx.recoveryInfo = {
+          status: 'recovery-pending',
+          reason: v2CorruptedReason || 'Bản lưu V2 bị hỏng và không tìm thấy bản lưu V1 hợp lệ.',
+          corruptedRaw: v2CorruptedRaw,
+          quarantineKey,
+          timestamp: Date.now(),
+        };
+      } else {
+        ctx.recoveryInfo = {
+          status: 'quarantine-failed',
+          reason: v2CorruptedReason || 'Bản lưu V2 bị hỏng và không thể tạo sao lưu cách ly an toàn.',
+          corruptedRaw: v2CorruptedRaw,
+          quarantineKey: null,
+          timestamp: Date.now(),
+        };
+      }
+      return DEFAULT_INITIAL_SAVE;
+    }
+
+    // 5. Cài đặt game mới hoàn toàn (fresh install)
+    ctx.isAutoSaveBlocked = false;
+    ctx.recoveryInfo = { status: 'healthy', timestamp: Date.now() };
     return DEFAULT_INITIAL_SAVE;
-  } catch (e) {
+  } catch (e: any) {
     console.error('Lỗi khi nạp dữ liệu lưu game:', e);
+    // Khi có ngoại lệ cấp cao (SecurityError, etc.), fail closed: khóa ghi
+    ctx.isAutoSaveBlocked = true;
+    ctx.recoveryInfo = {
+      status: 'quarantine-failed',
+      reason: e?.message || 'Lỗi truy cập bộ nhớ lưu trữ',
+      timestamp: Date.now(),
+    };
     return DEFAULT_INITIAL_SAVE;
   }
 }
@@ -522,19 +707,59 @@ export function importSaveFromString(rawString: string): { success: boolean; dat
   }
 }
 
+export interface ClearSaveOptions {
+  preserveQuarantineBackup?: boolean;
+}
+
 /**
- * Xóa dữ liệu lưu game khỏi Storage (xóa cả v2, v1 và các legacy keys)
+ * Xóa dữ liệu lưu game khỏi Storage (Mặc định bảo toàn quarantine backup để chống mất dữ liệu)
  */
-export function clearSavedGame(customStorage?: Storage): void {
+export function clearSavedGame(customStorage?: Storage, options?: ClearSaveOptions): boolean {
+  const preserveQuarantine = options?.preserveQuarantineBackup ?? true;
   try {
     const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
-    if (!storage) return;
+    if (!storage) return false;
+
     storage.removeItem(STORAGE_KEY);
     storage.removeItem(LEGACY_STORAGE_KEY);
-    storage.removeItem(CORRUPTED_BACKUP_KEY);
+
+    if (!preserveQuarantine) {
+      storage.removeItem(CORRUPTED_BACKUP_KEY);
+      for (let i = storage.length - 1; i >= 0; i--) {
+        const key = storage.key(i);
+        if (key && key.startsWith(CORRUPTED_BACKUP_KEY)) {
+          storage.removeItem(key);
+        }
+      }
+    }
+
     storage.removeItem(LEGACY_FAVORITES_KEY);
     storage.removeItem(LEGACY_GACHA_HISTORY_KEY);
+    return true;
   } catch (e) {
     console.error('Lỗi khi xóa dữ liệu lưu game:', e);
+    return false;
+  }
+}
+
+/**
+ * Xóa toàn bộ các bản sao lưu cách ly khi người chơi đã chủ động xác nhận xóa
+ */
+export function clearQuarantineBackups(customStorage?: Storage): boolean {
+  try {
+    const storage = customStorage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
+    if (!storage) return false;
+
+    storage.removeItem(CORRUPTED_BACKUP_KEY);
+    for (let i = storage.length - 1; i >= 0; i--) {
+      const key = storage.key(i);
+      if (key && key.startsWith(CORRUPTED_BACKUP_KEY)) {
+        storage.removeItem(key);
+      }
+    }
+    return true;
+  } catch (e) {
+    console.error('Lỗi khi xóa bản sao lưu cách ly:', e);
+    return false;
   }
 }

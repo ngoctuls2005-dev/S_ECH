@@ -41,6 +41,10 @@ import {
   exportSaveToString,
   importSaveFromString,
   clearSavedGame,
+  getSaveRecoveryInfo,
+  getCorruptedSaveRaw,
+  resetSaveStorageBlock,
+  SaveRecoveryInfo,
 } from '../engine/save';
 import { evaluateAchievements } from '../engine/achievements';
 import { soundManager } from '../engine/audio';
@@ -97,9 +101,13 @@ export interface GameStoreState {
   dismissAchievementToast: () => void;
   setSettings: (settings: Partial<GameSettings>) => void;
   setActiveTab: (tab: ActiveTab) => void;
+  // Data Recovery State & Actions
+  saveRecovery: SaveRecoveryInfo;
+  exportCorruptedSave: () => string | null;
+
   exportSave: () => string;
   importSave: (code: string) => { success: boolean; message?: string };
-  resetGame: () => void;
+  resetGame: () => { success: boolean; error?: string };
 }
 
 // Khởi tạo state từ lưu trữ cục bộ
@@ -128,6 +136,11 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     settings: initialLoaded.settings || DEFAULT_INITIAL_SAVE.settings,
     favoriteFrogIds: initialLoaded.favoriteFrogIds || [],
     gachaHistory: initialLoaded.gachaHistory || [],
+
+    saveRecovery: getSaveRecoveryInfo(),
+    exportCorruptedSave: () => {
+      return getCorruptedSaveRaw();
+    },
 
     activeTab: 'pond',
 
@@ -663,7 +676,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       }
 
       const d = res.data;
-      const saved = saveGameStateToStorage(d);
+      const saved = saveGameStateToStorage(d, undefined, undefined, { isManualUserResolution: true });
       if (!saved) {
         return {
           success: false,
@@ -691,6 +704,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         settings: d.settings,
         favoriteFrogIds: d.favoriteFrogIds || [],
         gachaHistory: d.gachaHistory || [],
+        saveRecovery: { status: 'healthy', timestamp: Date.now() },
         // Khởi tạo lại toàn bộ runtime states để không rò rỉ phiên cũ
         currentCombo: 0,
         lastClickTimestamp: 0,
@@ -705,7 +719,18 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     },
 
     resetGame: () => {
-      clearSavedGame();
+      const storage = typeof window !== 'undefined' ? window.localStorage : undefined;
+
+      // 1. Thử ghi bản lưu mới vào storage trước (với cờ manual resolution)
+      const saved = saveGameStateToStorage(DEFAULT_INITIAL_SAVE, storage, undefined, { isManualUserResolution: true });
+      if (!saved) {
+        console.warn('Không thể khởi tạo bản lưu mới vào storage do lỗi bộ nhớ (đầy hoặc bị chặn). Hủy reset để bảo vệ dữ liệu cũ.');
+        return { success: false, error: 'Không thể ghi bản lưu mới vào bộ nhớ trình duyệt' };
+      }
+
+      // 2. Ghi save mới thành công thì dọn dẹp các legacy keys nhưng BẢO TOÀN quarantine backup
+      clearSavedGame(storage, { preserveQuarantineBackup: true });
+
       soundManager.setSoundEnabled(DEFAULT_INITIAL_SAVE.settings.soundEnabled);
       soundManager.setVolume(DEFAULT_INITIAL_SAVE.settings.volume);
       soundManager.setMusicEnabled(DEFAULT_INITIAL_SAVE.settings.musicEnabled);
@@ -727,6 +752,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         settings: DEFAULT_INITIAL_SAVE.settings,
         favoriteFrogIds: [],
         gachaHistory: [],
+        saveRecovery: { status: 'healthy', timestamp: Date.now() },
         // Khởi tạo lại toàn bộ runtime states
         lastClickTimestamp: 0,
         idleAccumulator: 0,
@@ -736,6 +762,8 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         activeTab: 'pond',
         newAchievementUnlocked: null,
       });
+
+      return { success: true };
     },
   };
 });

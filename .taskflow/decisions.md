@@ -395,3 +395,38 @@
 ### [C05] VERIFIED (2026-10-17T16:01:15Z)
 - **Test tự động:** 1 lệnh PASS
 
+### [D01] Ghi chú quyết định (2026-10-17T16:17:00Z)
+- **Vì sao (Why):** Kiem toan phat hien V2 hong va V1 khong ton tai hoac hong bi autosave 5s ghi de DEFAULT_INITIAL_SAVE lam mat du lieu. Codex phan tich va de xuat quarantine ngay, danh dau recovery session va khoa autosave.
+- **Thay đổi & Tác động (Change):** Them SaveRecoveryInfo, SaveSessionContext, quarantine ngay khi V2 hong, khoa autosave neu recovery-pending hoac quarantine-failed, hien thi banner canh bao an toan du lieu tren UI va them d01_corrupted_autosave_protection.test.ts
+
+### [D01] VERIFIED (2026-10-17T16:17:09Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [D02] Ghi chú quyết định (2026-10-17T16:22:30Z)
+- **Vì sao (Why):** Codex review phat hien: reset gameplay xoa quarantine backup, import hop le bi block boi save lock, va can cach ly session context giua cac store/test. Antigravity tiep thu va sua triet de.
+- **Thay đổi & Tác động (Change):** Cap nhat clearSavedGame mac dinh preserveQuarantineBackup=true; them clearQuarantineBackups; them SaveStorageOptions isManualUserResolution vao saveGameStateToStorage; sua importSave va resetGame; them d02_save_lock_lifecycle.test.ts (5 tests)
+
+### [D02] VERIFIED (2026-10-17T16:22:42Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [D03] Ghi chú quyết định (2026-10-17T16:29:52Z)
+- **Vì sao (Why):** Kiem thu Browser E2E day du toan trinh: Click 30 lan, mua nang cap, quay gacha, doi ech chinh, favorite, xuat save, reload that, nhap save, kiem tra console 0 error va ghi video WebP
+- **Thay đổi & Tác động (Change):** Chay browser_subagent tren trinh duyet that xuat video full_e2e_flow_1792254215526.webp va export_import_reload_e2e_1792254400545.webp; console 0 error; 196 tests PASS
+
+### [D03] VERIFIED (2026-10-17T16:30:03Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [D04] Ghi chú quyết định (2026-10-17T16:37:47Z)
+- **Vì sao (Why):** Codex review D04 phan tich doc lap va chi ra 5 diem: resetGame fail-closed, multi-tab conflict prevention, unique quarantine key khong va cham, banner phan biet quarantine-failed. Antigravity tiep thu va sua triet de toan bo.
+- **Thay đổi & Tác động (Change):** Sua save.ts multi-tab check va unique quarantine key; sua resetGame fail-closed; sua App.tsx banner phan biet quarantine-failed; mo rong d02 test suite len 8 tests dat 199/199 tests PASS
+
+### [D04] VERIFIED (2026-10-17T16:37:57Z)
+- **Test tự động:** 1 lệnh PASS
+
+### [D05] Ghi chú quyết định (2026-10-17T16:40:51Z)
+- **Vì sao (Why):** Hoan tat toan bo dot Final Data Safety Review D01-D04, khac phuc 5 phat hien cua Codex, 199/199 tests PASS, Browser E2E 0 error, xuat ban V3_FINAL_CODEX_SIGNOFF.md
+- **Thay đổi & Tác động (Change):** Cap nhat save.ts, gameStore.ts, App.tsx, bo sung d01 va d02 test suites, xuat ban V3_FINAL_CODEX_SIGNOFF.md va CODEX_COLLABORATION_LOG.md
+
+### [D05] VERIFIED (2026-10-17T16:41:07Z)
+- **Test tự động:** 1 lệnh PASS
+

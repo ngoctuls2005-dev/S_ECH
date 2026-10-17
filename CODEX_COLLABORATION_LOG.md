@@ -96,10 +96,75 @@ Nhật ký ghi nhận toàn bộ các phiên trao đổi, phản biện kỹ thu
 
 ---
 
-## ROUND 6: FINAL VERIFICATION & TIÊU CHÍ NGHIỆM THU
+## ROUND 6: C01-C05 VERIFICATION & BASELINE SIGN-OFF
 
 - **Số lượng Unit/Integration Tests**: 185 tests / 18 suites (100% PASS).
 - **TypeScript & Vite Build**: `npm run build` PASS, 0 lỗi TypeScript, 0 bundle warning.
 - **Trạng thái 25 Pillow Placeholders**: Giữ nguyên ở trạng thái PARTIAL theo đúng chỉ thị (không pha trộn content sprint vào code quality fix).
-- **Technical Merge Readiness**: **YES** (Toàn bộ các rủi ro P0/P1 do Codex và Antigravity chỉ ra đã được khắc phục triệt để và kiểm chứng bằng test tự động).
+- **Technical Merge Readiness**: **YES** (Sau khi sửa 2 phát hiện P1 của Round 5).
 - **Content Release Readiness**: **NO** (25/40 hình ảnh ếch vẫn là placeholder vector tạm thời, chờ Content Sprint hoàn thiện).
+
+---
+
+## ROUND D01: BẢO VỆ SAVE KHI CẢ V1 VÀ V2 ĐỀU HỎNG HOẶC V1 THIẾU
+
+- **Thời điểm**: 2026-10-17 23:10 (Local Time)
+- **Lệnh thực thi**: `Get-Content .agent-reviews\codex\prompt_round_d01.md -Raw -Encoding UTF8 | codex exec -C . --sandbox read-only -o .agent-reviews\codex\round_d01_review.md -`
+- **Exit Code**: `0` (Tokens used: 64,063)
+- **Tệp báo cáo Codex**: `.agent-reviews/codex/round_d01_review.md`
+
+### Phân tích và Giải pháp:
+1. **Phát hiện**: Khi V2 hỏng và V1 thiếu hoặc hỏng, hệ thống nạp `DEFAULT_INITIAL_SAVE` và sau 5 giây autosave ghi đè xóa sạch chuỗi V2 gốc.
+2. **Khuyến nghị Codex**: Quarantine ngay lập tức khi phát hiện V2 hỏng; đánh dấu `recovery-pending` / `quarantine-failed`; khóa autosave bảo vệ dữ liệu gốc; cung cấp banner cảnh báo trên UI.
+3. **Triển khai Antigravity**:
+   - Thêm `SaveRecoveryInfo`, `SaveSessionContext`.
+   - Quarantine ngay khi V2 hỏng trước khi xét V1.
+   - Khóa autosave nếu ở trạng thái phục hồi.
+   - Hiển thị banner cảnh báo an toàn trên UI `App.tsx` kèm tính năng sao chép chuỗi lưu lỗi.
+   - Thêm test suite `d01_corrupted_autosave_protection.test.ts` (6 tests PASS).
+
+---
+
+## ROUND D02: VÒNG ĐỜI SAVE LOCK VÀ PHÂN BIỆT RESET GAMEPLAY VỚI QUARANTINE
+
+- **Thời điểm**: 2026-10-17 23:18 (Local Time)
+- **Lệnh thực thi**: `Get-Content .agent-reviews\codex\prompt_round_d02.md -Raw -Encoding UTF8 | codex exec -C . --sandbox read-only -o .agent-reviews\codex\round_d02_review.md -`
+- **Exit Code**: `0` (Tokens used: 58,900)
+- **Tệp báo cáo Codex**: `.agent-reviews/codex/round_d02_review.md`
+
+### Phân tích và Giải pháp:
+1. **Phát hiện**: `clearSavedGame` xóa `CORRUPTED_BACKUP_KEY` khi reset; `importSave` bị chặn khi phiên đang khóa; context chưa được truyền độc lập; `acknowledgeRecoveryReset` mở khóa thiếu an toàn.
+2. **Triển khai Antigravity**:
+   - `clearSavedGame` mặc định `preserveQuarantineBackup = true`. Thêm `clearQuarantineBackups`.
+   - Thêm `SaveStorageOptions` có `isManualUserResolution` cho `saveGameStateToStorage` để `importSave` và `resetGame` gỡ khóa an toàn khi ghi thành công (fail-closed).
+   - Xóa bỏ action mở khóa không an toàn.
+   - Thêm test suite `d02_save_lock_lifecycle.test.ts` (8 tests PASS).
+
+---
+
+## ROUND D04: CODEX FINAL POST-FIX CODE AUDIT & SIGN-OFF
+
+- **Thời điểm**: 2026-10-17 23:31 (Local Time)
+- **Lệnh thực thi**: `Get-Content .agent-reviews\codex\prompt_round_d04_final.md -Raw -Encoding UTF8 | codex exec -C . --sandbox read-only -o .agent-reviews\codex\round_d04_final_review.md -`
+- **Exit Code**: `0` (Tokens used: 120,208)
+- **Tệp báo cáo Codex**: `.agent-reviews/codex/round_d04_final_review.md`
+
+### Các phát hiện P1/P2 và Bản sửa của Antigravity:
+1. **[P1] resetGame() không fail-closed khi ghi save mới thất bại**:
+   - *Khắc phục*: Trong `resetGame()`, thử ghi `saveGameStateToStorage(DEFAULT_INITIAL_SAVE, storage, undefined, { isManualUserResolution: true })` trước. Nếu thất bại, hủy reset, giữ nguyên dữ liệu và trả về lỗi.
+2. **[P1] Xung đột đa tab có thể ghi đè save mới bằng snapshot cũ**:
+   - *Khắc phục*: Trong `saveGameStateToStorage()`, so sánh `lastSavedTimestamp` với bản lưu đang có trên storage. Nếu phát hiện storage chứa timestamp mới hơn từ tab khác, từ chối autosave snapshot cũ.
+3. **[P2] Key quarantine timestamped chưa bảo đảm duy nhất**:
+   - *Khắc phục*: Dùng vòng lặp kiểm tra `existingBackup !== null` (xử lý cả chuỗi rỗng `""`) và sinh key duy nhất không trùng lặp. Re-verify `STORAGE_KEY` trước khi ghi đè V1.
+4. **[P2] Banner UI phân biệt rõ ràng trạng thái**:
+   - *Khắc phục*: Banner phân biệt rõ ràng thông điệp giữa `recovery-pending` (đã cách ly an toàn) và `quarantine-failed` (bộ nhớ đầy, không thể cách ly).
+
+---
+
+## KẾT LUẬN CUỐI CÙNG SAU TOÀN BỘ CÁC VÒNG HỢP TÁC
+
+- **Tổng số tests**: **199 passed** / 199 tests (20 test suites, 0 failed).
+- **TypeScript & Build**: 100% PASS sạch sẽ trong 4.16s.
+- **Browser E2E**: Chạy Chromium thật với 2 video artifact WebP (`full_e2e_flow_1792254215526.webp` và `export_import_reload_e2e_1792254400545.webp`), 0 unhandled console errors.
+- **Technical Merge Readiness**: **YES** (Toàn bộ các rủi ro mất dữ liệu, race condition đa tab, quarantine, autosave lock và fail-closed reset đã được giải quyết dứt điểm).
+- **Content Release Readiness**: **NO** (25/40 ảnh placeholder Pillow giữ nguyên cho Content Sprint).

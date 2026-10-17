@@ -47,6 +47,10 @@ export default function App() {
   const offlineReward = useGameStore((s) => s.offlineReward);
   const dismissOfflineReward = useGameStore((s) => s.dismissOfflineReward);
 
+  const saveRecovery = useGameStore((s) => s.saveRecovery);
+  const exportCorruptedSave = useGameStore((s) => s.exportCorruptedSave);
+  const resetGame = useGameStore((s) => s.resetGame);
+
   // Stats calculation
   const activeBuffs = calculateActiveFrogBuffs(mainFrogId, ownedFrogs);
   const pps = calculatePointsPerSecond(upgradeLevels, activeBuffs);
@@ -141,6 +145,49 @@ export default function App() {
   return (
     <div className={`min-h-screen bg-gradient-to-b from-slate-950 via-pond-950 to-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-x-hidden pb-20 md:pb-0 ${reducedMotion ? 'reduce-motion' : ''}`}>
       <Header />
+
+      {(saveRecovery.status === 'recovery-pending' || saveRecovery.status === 'quarantine-failed') && (
+        <div className="bg-amber-950/90 border-b border-amber-600/50 text-amber-200 px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm gap-2 z-40 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⚠️</span>
+            <span>
+              <strong>Cảnh báo an toàn dữ liệu:</strong>{' '}
+              {saveRecovery.status === 'quarantine-failed'
+                ? 'Bản lưu trước đó bị lỗi và KHÔNG THỂ tạo bản sao lưu cách ly do bộ nhớ lưu trữ đầy hoặc bị chặn. Dữ liệu gốc vẫn được bảo toàn nguyên vẹn trên máy và tính năng tự động lưu đang khóa.'
+                : 'Bản lưu trước đó bị lỗi và đã được cách ly bảo vệ an toàn. Game đang chạy ở chế độ tạm thời, tính năng tự động lưu đang tạm khóa để bảo vệ dữ liệu gốc.'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                const raw = exportCorruptedSave();
+                if (raw) {
+                  navigator.clipboard?.writeText(raw);
+                  alert('Đã sao chép dữ liệu bản lưu lỗi vào clipboard!');
+                } else {
+                  alert('Không tìm thấy chuỗi bản lưu lỗi.');
+                }
+              }}
+              className="px-2.5 py-1 bg-amber-800 hover:bg-amber-700 text-amber-100 rounded font-medium text-xs transition-colors"
+            >
+              Sao chép bản lưu lỗi
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('Bạn có chắc chắn muốn bỏ qua bản lưu lỗi và bắt đầu game mới?')) {
+                  const res = resetGame();
+                  if (res && !res.success) {
+                    alert('Không thể tạo game mới: ' + (res.error || 'Lỗi bộ nhớ lưu trữ'));
+                  }
+                }
+              }}
+              className="px-2.5 py-1 bg-red-800 hover:bg-red-700 text-red-100 rounded font-medium text-xs transition-colors"
+            >
+              Tạo game mới
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Container: 3-column desktop layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 flex flex-col md:flex-row items-stretch gap-4 relative">
